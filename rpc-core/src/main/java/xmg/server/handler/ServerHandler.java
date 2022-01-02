@@ -24,6 +24,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Request> {
     private static final Logger log = LoggerFactory.getLogger(ServerHandler.class);
     private static final Set<Channel> onLineClients = new CopyOnWriteArraySet<>();
     private final static EventExecutorGroup executor = new DefaultEventExecutorGroup(NettyRuntime.availableProcessors() * 2);
+    private static final ThreadLocal<Request> threadLocal = new ThreadLocal<>();
     private final RpcServer rpcServer;
 
     public ServerHandler(RpcServer rpcServer) {
@@ -33,31 +34,41 @@ public class ServerHandler extends SimpleChannelInboundHandler<Request> {
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, Request request) {
         final String requestId = request.getRequestId();
-        final Response response = new Response();
-        response.setRequestId(requestId);
-        final Object[] args = request.getParameters();
+        final Response response = new Response(requestId);
+        response.setAddress(ctx.channel().localAddress().toString());
+        final boolean openTrace = request.isTrace();
+        if (openTrace){
+            response.setRequest(request);
+        }
         final MethodInfo key = new MethodInfo(request.getMethodName(), request.getParameterTypes());
         final ServerMethod serverMethod = rpcServer.getServerMethod(key);
         if (serverMethod == null) {
             response.setException(new RemoteAccessException("can't find this method " + key.getMethodName()));
-            response.setStates(Response.States.NOT_FOUND);
+            response.setStates(Response.State.NOT_FOUND);
             ctx.writeAndFlush(response);
         } else {
+            if (openTrace) {
+                RpcServer.putResponse(requestId, response);
+            }
+            final Object[] args = request.getParameters();
+            threadLocal.set(request);
             executor.execute(() -> {
                 try {
                     final Object bean = rpcServer.getBean(serverMethod.getBeanName());
                     final Method method = serverMethod.getMethod();
                     final Object result = method.invoke(bean, args);
                     response.setResult(result);
-                    response.setStates(Response.States.OK);
+                    response.setStates(Response.State.OK);
                 } catch (Exception e) {
                     response.setException(e);
-                    response.setStates(Response.States.INTERNAL_SERVER_ERROR);
+                    response.setStates(Response.State.INTERNAL_SERVER_ERROR);
                 }
+                RpcServer.removeResponse(requestId);
                 ctx.writeAndFlush(response);
             });
         }
     }
+
 
     @Override
     public void channelRegistered(ChannelHandlerContext ctx) {

@@ -16,6 +16,7 @@ import java.lang.reflect.Proxy;
 
 public class JdkProxy {
     private static final Logger log = LoggerFactory.getLogger(RpcServer.class);
+    private static final ThreadLocal<Request> threadLocal = new ThreadLocal<>();
 
     private static final JdkProxy proxy = new JdkProxy();
 
@@ -63,6 +64,11 @@ public class JdkProxy {
                 throw new RemoteApiException("can not find server provider");
             }
             final Request request = new Request(method, args);
+            final Request parentRequest = threadLocal.get();
+            if (parentRequest!=null) {
+                request.setParentRequestId(parentRequest.getRequestId());
+                request.setTrace(parentRequest.isTrace());
+            }
             return handler.senRequest(request).get();
         }
     }

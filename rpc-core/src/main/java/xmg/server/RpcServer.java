@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
+import xmg.codec.Response;
 import xmg.server.handler.ServerInitializer;
 import xmg.server.support.MethodInfo;
 import xmg.server.support.ServerMethod;
@@ -21,11 +22,13 @@ import javax.annotation.PreDestroy;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 
 public class RpcServer implements ApplicationContextAware {
     private static final Logger log = LoggerFactory.getLogger(RpcServer.class);
 
+    private static final Map<String, Response> responseMap = new ConcurrentHashMap<>();
     private final NioEventLoopGroup bossGroup = new NioEventLoopGroup(3);
     private final NioEventLoopGroup workGroup = new NioEventLoopGroup();
     private final Map<MethodInfo, ServerMethod> serviceMethodMap = new HashMap<>();
@@ -85,5 +88,17 @@ public class RpcServer implements ApplicationContextAware {
 
     public Object getBean(String name) {
         return ctx.getBean(name);
+    }
+
+    public static Response getResponse(String requestId) {
+        return responseMap.get(requestId);
+    }
+
+    public static void putResponse(String requestId, Response response) {
+        responseMap.put(requestId, response);
+    }
+
+    public static void removeResponse(String requestId) {
+        responseMap.remove(requestId);
     }
 }

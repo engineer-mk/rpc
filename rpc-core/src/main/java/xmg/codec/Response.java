@@ -1,43 +1,82 @@
 package xmg.codec;
 
 
+import com.alibaba.fastjson.JSON;
+
+import java.util.List;
+
 public class Response {
-    private String requestId;
+    private final String requestId;
+
     private Object result;
     private Exception exception;
-    private States states;
+    private State state;
+    private String address;
+    private long endTime;
 
-    public enum States {
-        OK(200, "OK"),
-        NOT_FOUND(404, "Not Found"),
-        INTERNAL_SERVER_ERROR(500, "Internal Server Error");
-        private final int value;
+    private Request request;
+    private List<Response> childResponse;
 
-        private final String reasonPhrase;
+    public Response(String requestId) {
+        this.requestId = requestId;
+    }
 
-        States(int value, String reasonPhrase) {
-            this.value = value;
-            this.reasonPhrase = reasonPhrase;
-        }
+    public enum State {
+        OK,
+        NOT_FOUND,
+        INTERNAL_SERVER_ERROR,
+
+    }
+
+    public long getEndTime() {
+        return endTime;
+    }
+
+    public void setEndTime(long endTime) {
+        this.endTime = endTime;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
+    }
+
+    public State getState() {
+        return state;
+    }
+
+    public void setState(State state) {
+        this.state = state;
+    }
+
+    public Request getRequest() {
+        return request;
+    }
+
+    public void setRequest(Request request) {
+        this.request = request;
+    }
+
+    public List<Response> getChildResponse() {
+        return childResponse;
+    }
+
+    public void setChildResponse(List<Response> childResponse) {
+        this.childResponse = childResponse;
     }
 
     @Override
     public String toString() {
-        return "Response{" +
-                "requestId='" + requestId + '\'' +
-                ", result=" + result +
-                ", exception=" + exception +
-                ", states=" + states +
-                '}';
+        return JSON.toJSONString(this);
     }
 
     public String getRequestId() {
         return requestId;
     }
 
-    public void setRequestId(String requestId) {
-        this.requestId = requestId;
-    }
 
     public Object getResult() {
         return result;
@@ -55,11 +94,11 @@ public class Response {
         this.exception = exception;
     }
 
-    public States getStates() {
-        return states;
+    public State getStates() {
+        return state;
     }
 
-    public void setStates(States states) {
-        this.states = states;
+    public void setStates(State state) {
+        this.state = state;
     }
 }

@@ -11,10 +11,14 @@ import xmg.codec.Response;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 
 public class ClientHandler extends SimpleChannelInboundHandler<Response> {
     private static final Logger log = LoggerFactory.getLogger(ClientHandler.class);
+    private static final ScheduledExecutorService service = Executors.newScheduledThreadPool(1);
 
     private ChannelHandlerContext context;
     private final Map<String, RpcFuture> futureMap = new ConcurrentHashMap<>();
@@ -22,12 +26,11 @@ public class ClientHandler extends SimpleChannelInboundHandler<Response> {
 
     public ClientHandler(Provider provider) {
         this.provider = provider;
+        service.scheduleAtFixedRate(this::clear, RpcFuture.maxWaitTime, 1000, TimeUnit.MILLISECONDS);
     }
 
     public RpcFuture senRequest(Request request) {
-        if (log.isDebugEnabled()) {
-            log.debug("远程调用--->地址:" + provider.toString() + "方法:" + request.toString());
-        }
+        request.setAddress(context.channel().localAddress().toString());
         final RpcFuture future = new RpcFuture(request);
         try {
             context.writeAndFlush(request).sync();
@@ -49,11 +52,6 @@ public class ClientHandler extends SimpleChannelInboundHandler<Response> {
         } else {
             log.warn("request id error: " + requestId);
         }
-        futureMap.forEach((s, rf) -> {
-            if (rf.isCancelled()) {
-                futureMap.remove(s);
-            }
-        });
     }
 
     @Override
@@ -81,8 +79,16 @@ public class ClientHandler extends SimpleChannelInboundHandler<Response> {
     }
 
     @Override
-    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
         log.error("远程调用异常:", cause);
+    }
+
+    private void clear() {
+        futureMap.forEach((s, rf) -> {
+            if (rf.isCancelled() || System.currentTimeMillis() - rf.getRequest().getCreateTime() > RpcFuture.maxWaitTime) {
+                futureMap.remove(s);
+            }
+        });
     }
 
     public ChannelHandlerContext getContext() {

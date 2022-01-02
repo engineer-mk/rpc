@@ -8,36 +8,42 @@ import xmg.client.connect.exception.RemoteAccessException;
 import xmg.client.connect.exception.RemoteTimeOutException;
 import xmg.codec.Request;
 import xmg.codec.Response;
+import xmg.server.RpcServer;
+import xmg.utils.StringUtils;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 
 public class RpcFuture implements Future<Object> {
     private static final Logger log = LoggerFactory.getLogger(RpcFuture.class);
-    private Response response;
+    public static final long maxWaitTime = 60 * 1000;
     private final Request request;
-    private final long startTime;
-    private final long maxWaitTime = 10 * 1000;
+    private Response response;
     private boolean isCancel;
 
-    public void setCancel(boolean cancel) {
-        isCancel = cancel;
-    }
 
     public RpcFuture(Request request) {
         this.request = request;
-        this.startTime = System.currentTimeMillis();
         this.isCancel = false;
     }
 
 
     public void done(Response response) {
-        this.response = response;
-        if (log.isDebugEnabled()) {
-            log.debug("调用完成--->方法:" + response.toString() + " 耗时:" + (System.currentTimeMillis() - startTime) + "ms");
+        response.setEndTime(System.currentTimeMillis());
+        if (request.isTrace()) {
+            final String parentRequestId = request.getParentRequestId();
+            if (StringUtils.isNotBlank(parentRequestId)) {
+                final Response pp = RpcServer.getResponse(parentRequestId);
+                if (pp != null) {
+                    final List<Response> childResponse = pp.getChildResponse();
+                    childResponse.add(response);
+                }
+            }
         }
+        this.response = response;
         synchronized (this) {
             notifyAll();
         }
@@ -65,11 +71,11 @@ public class RpcFuture implements Future<Object> {
             await();
             result = this.response.getResult();
         }
-        if (!Response.States.OK.equals(this.response.getStates())) {
+        if (!Response.State.OK.equals(this.response.getStates())) {
             final Exception exception = this.response.getException();
-            log.error(exception.getMessage(), exception);
             String msg = request.getMethodName() + Arrays.toString(request.getParameters())
                     + exception.getMessage();
+            log.error("远程异常--->方法:" + response.toString(), exception);
             throw new RemoteAccessException(msg);
         }
         return result;
@@ -82,11 +88,11 @@ public class RpcFuture implements Future<Object> {
             await(timeout, unit);
             result = this.response.getResult();
         }
-        if (isDone() && !Response.States.OK.equals(this.response.getStates())) {
+        if (isDone() && !Response.State.OK.equals(this.response.getStates())) {
             final Exception exception = this.response.getException();
-            log.error(exception.getMessage(), exception);
             String msg = request.getMethodName() + Arrays.toString(request.getParameters())
                     + exception.getMessage();
+            log.error("远程异常--->方法:" + response.toString(), exception);
             throw new RemoteAccessException(msg);
         }
         return result;
@@ -101,7 +107,7 @@ public class RpcFuture implements Future<Object> {
         }
         synchronized (this) {
             while (!isDone()) {
-                if (System.currentTimeMillis() - this.startTime >= maxWaitTime) {
+                if (System.currentTimeMillis() - this.request.getCreateTime() >= maxWaitTime) {
                     this.isCancel = true;
                     throw new RemoteTimeOutException("remote api timeOut");
                 }
@@ -119,7 +125,7 @@ public class RpcFuture implements Future<Object> {
         }
         synchronized (this) {
             wait(Math.min(unit.toMillis(timeout), maxWaitTime));
-            if (System.currentTimeMillis() - this.startTime >= maxWaitTime) {
+            if (System.currentTimeMillis() - this.request.getCreateTime() >= maxWaitTime) {
                 this.isCancel = true;
                 throw new RemoteTimeOutException("remote api timeOut");
             }
@@ -127,5 +133,9 @@ public class RpcFuture implements Future<Object> {
                 this.isCancel = true;
             }
         }
+    }
+
+    public Request getRequest() {
+        return request;
     }
 }

@@ -9,6 +9,7 @@ public class Provider {
     private String host;
     private Integer port;
     private String description;
+    private boolean trace;
 
 
     public InetSocketAddress getInetAddress() {
@@ -23,21 +24,11 @@ public class Provider {
     }
 
     @Override
-    public String toString() {
-        return "Provider{" +
-                "name='" + name + '\'' +
-                ", host='" + host + '\'' +
-                ", port=" + port +
-                ", description='" + description + '\'' +
-                '}';
-    }
-
-    @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof Provider)) return false;
         Provider provider = (Provider) o;
-        return Objects.equals(name, provider.name) && Objects.equals(host, provider.host) && Objects.equals(port, provider.port) && Objects.equals(description, provider.description);
+        return Objects.equals(name, provider.name) && Objects.equals(host, provider.host) && Objects.equals(port, provider.port);
     }
 
     @Override
@@ -75,5 +66,13 @@ public class Provider {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public boolean isTrace() {
+        return trace;
+    }
+
+    public void setTrace(boolean trace) {
+        this.trace = trace;
     }
 }
