@@ -19,14 +19,14 @@ public class Response {
 
     public String getChildResponseInfo(){
         if (childResponse == null || childResponse.size() == 0) {
-            return "";
+            return " ";
         }
         StringBuilder sb = new StringBuilder();
-        sb.append("{");
+        sb.append("--->{ ");
         for (Response response : childResponse) {
             sb.append(response.getTraceInfo());
         }
-        sb.append("}");
+        sb.append(" }--->");
         return sb.toString();
     }
 
@@ -40,17 +40,20 @@ public class Response {
             for (int i = 0; i < parameters.length; i++) {
                 final Object parameter = parameters[i];
                 final Class<?> parameterType = parameterTypes[i];
+                if (i>0){
+                    sb.append(",");
+                }
                 sb.append(parameterType.getSimpleName());
                 sb.append(" ");
                 sb.append(JSON.toJSONString(parameter));
             }
             sb.append(")");
         }
-        sb.append("--->远程地址:");
+        sb.append("--->");
         sb.append(this.address);
         sb.append(this.getChildResponseInfo());
         sb.append("调用结果:");
-        sb.append(JSON.toJSONString(request));
+        sb.append(JSON.toJSONString(result));
         return sb.toString();
     }
 
