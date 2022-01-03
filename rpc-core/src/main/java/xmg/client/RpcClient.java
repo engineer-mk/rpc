@@ -55,8 +55,10 @@ public class RpcClient implements BeanFactoryPostProcessor, EnvironmentAware {
                     beanFactory.registerSingleton(beanName, proxyInstance);
                     final String name = rpcApi.value();
                     final String url = rpcApi.url();
+                    final boolean trace = rpcApi.trace();
+                    final Provider provider = new Provider();
+                    provider.setTrace(trace);
                     if (StringUtils.isNotBlank(url)) {
-                        final Provider provider = new Provider();
                         final String[] split = url.split(":");
                         provider.setHost(split[0]);
                         provider.setPort(Integer.parseInt(split[1]));
@@ -65,7 +67,6 @@ public class RpcClient implements BeanFactoryPostProcessor, EnvironmentAware {
                         }
                         needRegisteredRpcProviders.add(provider);
                     } else if (StringUtils.isNotBlank(name)) {
-                        final Provider provider = new Provider();
                         provider.setName(name);
                         needRegisteredRpcProviders.add(provider);
                     } else {

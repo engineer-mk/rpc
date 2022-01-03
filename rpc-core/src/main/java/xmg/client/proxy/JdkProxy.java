@@ -3,11 +3,12 @@ package xmg.client.proxy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import xmg.client.connect.ConnectionManager;
-import xmg.client.connect.exception.RemoteApiException;
+import xmg.client.connect.exception.RpcRemoteApiException;
 import xmg.client.handler.ClientHandler;
 import xmg.client.support.RpcApi;
 import xmg.codec.Request;
 import xmg.server.RpcServer;
+import xmg.server.handler.ServerHandler;
 import xmg.utils.StringUtils;
 
 import java.lang.reflect.InvocationHandler;
@@ -16,7 +17,6 @@ import java.lang.reflect.Proxy;
 
 public class JdkProxy {
     private static final Logger log = LoggerFactory.getLogger(RpcServer.class);
-    private static final ThreadLocal<Request> threadLocal = new ThreadLocal<>();
 
     private static final JdkProxy proxy = new JdkProxy();
 
@@ -44,6 +44,18 @@ public class JdkProxy {
 
         @Override
         public Object invoke(Object proxy, Method method, Object[] args) throws InterruptedException {
+            if (method.getDeclaringClass() == Object.class) {
+                switch (method.getName()) {
+                    case "equals":
+                        return proxy == args[0];
+                    case "toString":
+                        return proxy.getClass().getName() + "@" + Integer.toHexString(System.identityHashCode(proxy));
+                    case "hashCode":
+                        return System.identityHashCode(proxy);
+                    default:
+                        throw new UnsupportedOperationException();
+                }
+            }
             final RpcApi rpcApi = target.getAnnotation(RpcApi.class);
             if (rpcApi == null) {
                 throw new RuntimeException("is not rpcApi");
@@ -58,14 +70,14 @@ public class JdkProxy {
                 final String[] split = url.split(":");
                 handler = connectionManager.choiceHandler(split[0], Integer.parseInt(split[1]));
             } else {
-                throw new RemoteApiException("not definition server provider");
+                throw new RpcRemoteApiException("not definition server provider");
             }
             if (handler == null) {
-                throw new RemoteApiException("can not find server provider");
+                throw new RpcRemoteApiException("can not find server provider");
             }
             final Request request = new Request(method, args);
-            final Request parentRequest = threadLocal.get();
-            if (parentRequest!=null) {
+            final Request parentRequest = ServerHandler.threadLocal.get();
+            if (parentRequest != null) {
                 request.setParentRequestId(parentRequest.getRequestId());
                 request.setTrace(parentRequest.isTrace());
             }

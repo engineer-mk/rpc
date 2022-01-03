@@ -9,7 +9,7 @@ import io.netty.util.concurrent.DefaultEventExecutorGroup;
 import io.netty.util.concurrent.EventExecutorGroup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import xmg.client.connect.exception.RemoteAccessException;
+import xmg.client.connect.exception.RPcRemoteAccessException;
 import xmg.codec.Request;
 import xmg.codec.Response;
 import xmg.server.RpcServer;
@@ -24,7 +24,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Request> {
     private static final Logger log = LoggerFactory.getLogger(ServerHandler.class);
     private static final Set<Channel> onLineClients = new CopyOnWriteArraySet<>();
     private final static EventExecutorGroup executor = new DefaultEventExecutorGroup(NettyRuntime.availableProcessors() * 2);
-    private static final ThreadLocal<Request> threadLocal = new ThreadLocal<>();
+    public static final ThreadLocal<Request> threadLocal = new ThreadLocal<>();
     private final RpcServer rpcServer;
 
     public ServerHandler(RpcServer rpcServer) {
@@ -37,33 +37,37 @@ public class ServerHandler extends SimpleChannelInboundHandler<Request> {
         final Response response = new Response(requestId);
         response.setAddress(ctx.channel().localAddress().toString());
         final boolean openTrace = request.isTrace();
-        if (openTrace){
+        if (openTrace) {
             response.setRequest(request);
         }
         final MethodInfo key = new MethodInfo(request.getMethodName(), request.getParameterTypes());
         final ServerMethod serverMethod = rpcServer.getServerMethod(key);
         if (serverMethod == null) {
-            response.setException(new RemoteAccessException("can't find this method " + key.getMethodName()));
+            response.setException(new RPcRemoteAccessException("can't find this method " + key.getMethodName()));
             response.setStates(Response.State.NOT_FOUND);
             ctx.writeAndFlush(response);
         } else {
-            if (openTrace) {
-                RpcServer.putResponse(requestId, response);
-            }
-            final Object[] args = request.getParameters();
-            threadLocal.set(request);
             executor.execute(() -> {
+                if (openTrace) {
+                    RpcServer.putResponse(requestId, response);
+                    threadLocal.set(request);
+                }
                 try {
                     final Object bean = rpcServer.getBean(serverMethod.getBeanName());
                     final Method method = serverMethod.getMethod();
+                    final Object[] args = request.getParameters();
                     final Object result = method.invoke(bean, args);
                     response.setResult(result);
                     response.setStates(Response.State.OK);
                 } catch (Exception e) {
+                    log.error(requestId + "请求异常:", e);
                     response.setException(e);
                     response.setStates(Response.State.INTERNAL_SERVER_ERROR);
                 }
-                RpcServer.removeResponse(requestId);
+                if (openTrace) {
+                    threadLocal.remove();
+                    RpcServer.removeResponse(requestId);
+                }
                 ctx.writeAndFlush(response);
             });
         }

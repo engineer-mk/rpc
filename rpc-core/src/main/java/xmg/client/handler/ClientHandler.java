@@ -30,6 +30,9 @@ public class ClientHandler extends SimpleChannelInboundHandler<Response> {
     }
 
     public RpcFuture senRequest(Request request) {
+        if (provider.isTrace()) {
+            request.setTrace(true);
+        }
         request.setAddress(context.channel().localAddress().toString());
         final RpcFuture future = new RpcFuture(request);
         try {
@@ -48,7 +51,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<Response> {
         RpcFuture rpcFuture = futureMap.get(requestId);
         if (rpcFuture != null) {
             futureMap.remove(requestId);
-            rpcFuture.done(response);
+            rpcFuture.done(response,provider.isTrace());
         } else {
             log.warn("request id error: " + requestId);
         }

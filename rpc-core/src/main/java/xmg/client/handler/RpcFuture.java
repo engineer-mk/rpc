@@ -4,13 +4,14 @@ package xmg.client.handler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.lang.NonNull;
-import xmg.client.connect.exception.RemoteAccessException;
-import xmg.client.connect.exception.RemoteTimeOutException;
+import xmg.client.connect.exception.RPcRemoteAccessException;
+import xmg.client.connect.exception.RpcRemoteTimeOutException;
 import xmg.codec.Request;
 import xmg.codec.Response;
 import xmg.server.RpcServer;
 import xmg.utils.StringUtils;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Future;
@@ -31,19 +32,26 @@ public class RpcFuture implements Future<Object> {
     }
 
 
-    public void done(Response response) {
+    public void done(Response response, boolean trace) {
         response.setEndTime(System.currentTimeMillis());
         if (request.isTrace()) {
             final String parentRequestId = request.getParentRequestId();
             if (StringUtils.isNotBlank(parentRequestId)) {
                 final Response pp = RpcServer.getResponse(parentRequestId);
                 if (pp != null) {
-                    final List<Response> childResponse = pp.getChildResponse();
+                    List<Response> childResponse = pp.getChildResponse();
+                    if (childResponse == null) {
+                        childResponse=new ArrayList<>();
+                        pp.setChildResponse(childResponse);
+                    }
                     childResponse.add(response);
                 }
             }
         }
         this.response = response;
+        if (trace && log.isDebugEnabled()) {
+            log.debug(response.getTraceInfo());
+        }
         synchronized (this) {
             notifyAll();
         }
@@ -76,7 +84,7 @@ public class RpcFuture implements Future<Object> {
             String msg = request.getMethodName() + Arrays.toString(request.getParameters())
                     + exception.getMessage();
             log.error("远程异常--->方法:" + response.toString(), exception);
-            throw new RemoteAccessException(msg);
+            throw new RPcRemoteAccessException(msg);
         }
         return result;
     }
@@ -93,7 +101,7 @@ public class RpcFuture implements Future<Object> {
             String msg = request.getMethodName() + Arrays.toString(request.getParameters())
                     + exception.getMessage();
             log.error("远程异常--->方法:" + response.toString(), exception);
-            throw new RemoteAccessException(msg);
+            throw new RPcRemoteAccessException(msg);
         }
         return result;
     }
@@ -109,7 +117,7 @@ public class RpcFuture implements Future<Object> {
             while (!isDone()) {
                 if (System.currentTimeMillis() - this.request.getCreateTime() >= maxWaitTime) {
                     this.isCancel = true;
-                    throw new RemoteTimeOutException("remote api timeOut");
+                    throw new RpcRemoteTimeOutException("remote api timeOut");
                 }
                 wait(1000);
             }
@@ -127,7 +135,7 @@ public class RpcFuture implements Future<Object> {
             wait(Math.min(unit.toMillis(timeout), maxWaitTime));
             if (System.currentTimeMillis() - this.request.getCreateTime() >= maxWaitTime) {
                 this.isCancel = true;
-                throw new RemoteTimeOutException("remote api timeOut");
+                throw new RpcRemoteTimeOutException("remote api timeOut");
             }
             if (!isDone()) {
                 this.isCancel = true;

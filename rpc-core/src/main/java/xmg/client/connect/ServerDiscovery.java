@@ -41,6 +41,7 @@ public class ServerDiscovery implements InitializingBean, DisposableBean {
                     provider.setHost(instance.getHost());
                     final String port = metadata.get("rpcServerPort");
                     provider.setPort(Integer.parseInt(port));
+                    provider.setTrace(p.isTrace());
                     providers.add(provider);
                 }
             } else if (inetAddress != null) {
@@ -56,7 +57,7 @@ public class ServerDiscovery implements InitializingBean, DisposableBean {
         try {
             connectionManager.stopUpdateConnectionTask();
             updateConnection();
-            service.scheduleAtFixedRate(this::updateConnection, 60, 10, TimeUnit.SECONDS);
+            service.scheduleAtFixedRate(this::updateConnection, 30, 5, TimeUnit.SECONDS);
         } catch (Exception e) {
             e.printStackTrace();
         }
