@@ -57,7 +57,7 @@ public class ServerDiscovery implements InitializingBean, DisposableBean {
         try {
             connectionManager.stopUpdateConnectionTask();
             updateConnection();
-            service.scheduleAtFixedRate(this::updateConnection, 30, 5, TimeUnit.SECONDS);
+            service.scheduleAtFixedRate(this::updateConnection, 10, 5, TimeUnit.SECONDS);
         } catch (Exception e) {
             e.printStackTrace();
         }

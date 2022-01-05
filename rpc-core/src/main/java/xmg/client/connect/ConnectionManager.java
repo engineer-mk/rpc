@@ -142,7 +142,7 @@ public class ConnectionManager implements InitializingBean, DisposableBean {
         try {
             isRunning = true;
             updateConnection();
-            service.scheduleAtFixedRate(this::updateConnection, 30, 50, TimeUnit.SECONDS);
+            service.scheduleAtFixedRate(this::updateConnection, 10, 5, TimeUnit.SECONDS);
         } catch (Exception e) {
             e.printStackTrace();
         }

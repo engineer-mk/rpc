@@ -16,6 +16,7 @@ import xmg.server.RpcServer;
 import xmg.server.support.MethodInfo;
 import xmg.server.support.ServerMethod;
 
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -60,7 +61,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Request> {
                     response.setResult(result);
                     response.setStates(Response.State.OK);
                 } catch (Exception e) {
-                    log.error(requestId + "请求异常:", e);
+                    log.error(requestId + " 请求异常:"+e.getLocalizedMessage(), e);
                     response.setException(e);
                     response.setStates(Response.State.INTERNAL_SERVER_ERROR);
                 }
