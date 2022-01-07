@@ -9,9 +9,9 @@ import io.netty.util.concurrent.DefaultEventExecutorGroup;
 import io.netty.util.concurrent.EventExecutorGroup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import xmg.client.connect.exception.RPcRemoteAccessException;
 import xmg.codec.Request;
 import xmg.codec.Response;
+import xmg.codec.exception.RPcRemoteAccessException;
 import xmg.server.RpcServer;
 import xmg.server.support.MethodInfo;
 import xmg.server.support.ServerMethod;
@@ -44,7 +44,8 @@ public class ServerHandler extends SimpleChannelInboundHandler<Request> {
         final MethodInfo key = new MethodInfo(request.getMethodName(), request.getParameterTypes());
         final ServerMethod serverMethod = rpcServer.getServerMethod(key);
         if (serverMethod == null) {
-            response.setException(new RPcRemoteAccessException("can't find this method " + key.getMethodName()));
+            final RPcRemoteAccessException e = new RPcRemoteAccessException("can't find this method " + key.getMethodName(), new UnsupportedOperationException());
+            response.setThrowable(e);
             response.setStates(Response.State.NOT_FOUND);
             ctx.writeAndFlush(response);
         } else {
@@ -60,9 +61,19 @@ public class ServerHandler extends SimpleChannelInboundHandler<Request> {
                     final Object result = method.invoke(bean, args);
                     response.setResult(result);
                     response.setStates(Response.State.OK);
-                } catch (Exception e) {
-                    log.error(requestId + " 请求异常:"+e.getLocalizedMessage(), e);
-                    response.setException(e);
+                } catch (InvocationTargetException e) {
+                    Throwable targetException = e.getTargetException();
+                    if (targetException instanceof RPcRemoteAccessException) {
+                        targetException = ((RPcRemoteAccessException) targetException).getTarget();
+                    } else {
+                        final String mes = requestId + " 请求异常:" + targetException.toString();
+                        log.error(mes, targetException);
+                    }
+                    response.setThrowable(targetException);
+                    response.setStates(Response.State.INTERNAL_SERVER_ERROR);
+                } catch (IllegalAccessException e) {
+                    log.error(requestId + " 请求异常:" + e.getLocalizedMessage(), e);
+                    response.setThrowable(e);
                     response.setStates(Response.State.INTERNAL_SERVER_ERROR);
                 }
                 if (openTrace) {

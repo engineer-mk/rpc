@@ -3,7 +3,7 @@ package xmg.client.proxy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import xmg.client.connect.ConnectionManager;
-import xmg.client.connect.exception.RpcRemoteApiException;
+import xmg.codec.exception.RpcRemoteApiException;
 import xmg.client.handler.ClientHandler;
 import xmg.client.support.RpcApi;
 import xmg.codec.Request;

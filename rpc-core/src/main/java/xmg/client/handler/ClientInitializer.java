@@ -9,7 +9,7 @@ import xmg.codec.Request;
 import xmg.codec.Response;
 import xmg.codec.RpcDecoder;
 import xmg.codec.RpcEncoder;
-import xmg.codec.serializer.impl.FastJsonSerializer;
+import xmg.codec.serializer.impl.HessianSerializer;
 
 
 public class ClientInitializer extends ChannelInitializer<SocketChannel> {
@@ -22,8 +22,8 @@ public class ClientInitializer extends ChannelInitializer<SocketChannel> {
     @Override
     protected void initChannel(SocketChannel socketChannel) {
         final ChannelPipeline pipeline = socketChannel.pipeline();
-        pipeline.addLast(new RpcEncoder(Request.class, FastJsonSerializer.getInstance()));
-        pipeline.addLast(new RpcDecoder(Response.class, FastJsonSerializer.getInstance()));
+        pipeline.addLast(new RpcEncoder(Request.class, HessianSerializer.getInstance()));
+        pipeline.addLast(new RpcDecoder(Response.class, HessianSerializer.getInstance()));
         pipeline.addLast(new ClientHandler(provider));
     }
 }

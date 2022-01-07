@@ -1,4 +1,4 @@
-package xmg.client.connect.exception;
+package xmg.codec.exception;
 
 public class RpcRemoteApiException extends RuntimeException {
     public RpcRemoteApiException(String message) {

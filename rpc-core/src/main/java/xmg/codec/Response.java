@@ -1,15 +1,15 @@
 package xmg.codec;
 
 
-import com.alibaba.fastjson.JSON;
-
+import java.io.Serializable;
 import java.util.List;
 
-public class Response {
-    private String requestId;
+public class Response implements Serializable {
+    private static final long serialVersionUID = 153214121232L;
 
+    private String requestId;
     private Object result;
-    private Exception exception;
+    private Throwable throwable;
     private State state;
     private String address;
     private long endTime;
@@ -17,7 +17,7 @@ public class Response {
     private Request request;
     private List<Response> childResponse;
 
-    public String getChildResponseInfo(){
+    public String getChildResponseInfo() {
         if (childResponse == null || childResponse.size() == 0) {
             return " ";
         }
@@ -30,7 +30,7 @@ public class Response {
         return sb.toString();
     }
 
-    public String getTraceInfo(){
+    public String getTraceInfo() {
         StringBuilder sb = new StringBuilder();
         if (request != null) {
             sb.append(request.getMethodName());
@@ -40,20 +40,31 @@ public class Response {
             for (int i = 0; i < parameters.length; i++) {
                 final Object parameter = parameters[i];
                 final Class<?> parameterType = parameterTypes[i];
-                if (i>0){
+                if (i > 0) {
                     sb.append(",");
                 }
                 sb.append(parameterType.getSimpleName());
                 sb.append(" ");
-                sb.append(JSON.toJSONString(parameter));
+                sb.append(parameter.toString());
             }
             sb.append(")");
         }
         sb.append("--->");
         sb.append(this.address);
         sb.append(this.getChildResponseInfo());
-        sb.append("调用结果:");
-        sb.append(JSON.toJSONString(result));
+        if (!this.state.equals(State.OK)) {
+            Throwable throwable = this.throwable;
+            sb.append("调用异常:");
+            sb.append(throwable.toString());
+        } else {
+            sb.append("调用结果:");
+            sb.append(result.toString());
+        }
+        if (this.request != null) {
+            sb.append(",调用耗时:");
+            sb.append(this.getTimeConsuming());
+            sb.append("ms");
+        }
         return sb.toString();
     }
 
@@ -123,10 +134,6 @@ public class Response {
         this.childResponse = childResponse;
     }
 
-    @Override
-    public String toString() {
-        return JSON.toJSONString(this);
-    }
 
     public String getRequestId() {
         return requestId;
@@ -141,12 +148,12 @@ public class Response {
         this.result = result;
     }
 
-    public Exception getException() {
-        return exception;
+    public Throwable getThrowable() {
+        return throwable;
     }
 
-    public void setException(Exception exception) {
-        this.exception = exception;
+    public void setThrowable(Throwable throwable) {
+        this.throwable = throwable;
     }
 
     public State getStates() {
