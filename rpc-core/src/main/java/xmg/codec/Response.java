@@ -63,7 +63,7 @@ public class Response implements Serializable {
         if (this.request != null) {
             sb.append(",调用耗时:");
             sb.append(this.getTimeConsuming());
-            sb.append("ms");
+            sb.append("ms ");
         }
         return sb.toString();
     }

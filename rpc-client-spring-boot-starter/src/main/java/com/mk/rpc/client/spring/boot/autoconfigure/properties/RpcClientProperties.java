@@ -10,7 +10,15 @@ public class RpcClientProperties {
     //environment.getProperty()不支持集合
     //多个值，用英文逗号分割
     private String remoteApiPackages;
+    private String token;
 
+    public String getToken() {
+        return token;
+    }
+
+    public void setToken(String token) {
+        this.token = token;
+    }
 
     public String getRemoteApiPackages() {
         return remoteApiPackages;

@@ -27,7 +27,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class RpcServer implements ApplicationContextAware {
     private static final Logger log = LoggerFactory.getLogger(RpcServer.class);
-
+    public static String TOKEN;
     private static final Map<String, Response> responseMap = new ConcurrentHashMap<>();
     private final NioEventLoopGroup bossGroup = new NioEventLoopGroup(3);
     private final NioEventLoopGroup workGroup = new NioEventLoopGroup();

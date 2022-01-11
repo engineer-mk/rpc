@@ -1,19 +1,15 @@
 package xmg.codec;
 
 
-import com.caucho.hessian.io.Hessian2Output;
-import xmg.codec.serializer.Serializer;
-import xmg.codec.serializer.impl.HessianSerializer;
+import xmg.client.RpcClient;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.io.Serializable;
 import java.lang.reflect.Method;
 import java.util.UUID;
 
 public class Request implements Serializable {
     private static final long serialVersionUID = 3425084385L;
-
+    private String token;
     private String requestId;
     private String methodName;
     private Class<?>[] parameterTypes;
@@ -29,10 +25,19 @@ public class Request implements Serializable {
 
     public Request(Method method, Object[] args) {
         this.requestId = UUID.randomUUID().toString();
+        this.token = RpcClient.TOKEN;
         this.methodName = method.getName();
         this.parameterTypes = method.getParameterTypes();
         this.parameters = args;
         this.createTime = System.currentTimeMillis();
+    }
+
+    public String getToken() {
+        return token;
+    }
+
+    public void setToken(String token) {
+        this.token = token;
     }
 
     public void setRequestId(String requestId) {

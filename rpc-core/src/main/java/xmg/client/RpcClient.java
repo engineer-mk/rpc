@@ -25,7 +25,7 @@ import java.util.Set;
 
 public class RpcClient implements BeanFactoryPostProcessor, EnvironmentAware {
     final Logger log = LoggerFactory.getLogger(RpcClient.class);
-
+    public static String TOKEN;
     public static final Set<Provider> needRegisteredRpcProviders = new HashSet<>();
     private Environment environment;
 
@@ -34,6 +34,7 @@ public class RpcClient implements BeanFactoryPostProcessor, EnvironmentAware {
 
     public void postProcessBeanFactory(@NonNull ConfigurableListableBeanFactory beanFactory) throws BeansException {
         String packages = environment.getProperty("rpc.client.remote-api-packages", String.class);
+        RpcClient.TOKEN = environment.getProperty("rpc.client.token", String.class);
         if (packages == null) {
             log.warn("remote api packages is not specified , use the default value \"com.\"");
             packages = "com.";

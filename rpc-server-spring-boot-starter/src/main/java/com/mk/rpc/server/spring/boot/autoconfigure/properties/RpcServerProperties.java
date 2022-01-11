@@ -6,6 +6,16 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public class RpcServerProperties {
     private Integer port = 7000;
 
+    private String token;
+
+    public String getToken() {
+        return token;
+    }
+
+    public void setToken(String token) {
+        this.token = token;
+    }
+
     public Integer getPort() {
         return port;
     }

@@ -13,7 +13,8 @@ public class RpcServerAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public RpcServer rpcServer(RpcServerProperties properties){
+    public RpcServer rpcServer(RpcServerProperties properties) {
+        RpcServer.TOKEN = properties.getToken();
         return new RpcServer(properties.getPort());
     }
 

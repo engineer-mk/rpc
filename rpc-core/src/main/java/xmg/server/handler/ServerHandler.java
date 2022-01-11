@@ -34,6 +34,13 @@ public class ServerHandler extends SimpleChannelInboundHandler<Request> {
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, Request request) {
+        if (RpcServer.TOKEN!=null){
+            final String token = request.getToken();
+            if (!RpcServer.TOKEN.equals(token)){
+                ctx.close();
+                log.error(ctx.pipeline().channel().remoteAddress() + " token error!");
+            }
+        }
         final String requestId = request.getRequestId();
         final Response response = new Response(requestId);
         response.setAddress(ctx.channel().localAddress().toString());
