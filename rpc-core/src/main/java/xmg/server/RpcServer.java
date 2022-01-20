@@ -20,6 +20,7 @@ import xmg.server.support.annotation.RpcProvider;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -68,16 +69,18 @@ public class RpcServer implements ApplicationContextAware {
         this.ctx = ctx;
         final Map<String, Object> beans = ctx.getBeansWithAnnotation(RpcProvider.class);
         beans.forEach((name, o) -> {
-            final Class<?> aClass = o.getClass();
+            final Class<?> aClass = o.getClass().getSuperclass();
             final Method[] methods = aClass.getDeclaredMethods();
             for (Method m : methods) {
-                final MethodInfo methodInfo = new MethodInfo(m.getName(), m.getParameterTypes());
-                if (serviceMethodMap.containsKey(methodInfo)) {
-                    final ServerMethod method = serviceMethodMap.get(methodInfo);
-                    String meg = aClass.getName() + ":" + m.getName() + " has been exist in bean " + method.toString();
-                    throw new RuntimeException(meg);
+                if (m.getModifiers() == Modifier.PUBLIC) {
+                    final MethodInfo methodInfo = new MethodInfo(m.getName(), m.getParameterTypes());
+                    if (serviceMethodMap.containsKey(methodInfo)) {
+                        final ServerMethod method = serviceMethodMap.get(methodInfo);
+                        String meg = aClass.getName() + ":" + m.getName() + " has been exist in bean " + method.toString();
+                        throw new RuntimeException(meg);
+                    }
+                    serviceMethodMap.put(methodInfo, new ServerMethod(name, m));
                 }
-                serviceMethodMap.put(methodInfo, new ServerMethod(name, m));
             }
         });
     }

@@ -21,6 +21,8 @@ import xmg.utils.StringUtils;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 
 public class RpcClient implements BeanFactoryPostProcessor, EnvironmentAware {
@@ -54,11 +56,12 @@ public class RpcClient implements BeanFactoryPostProcessor, EnvironmentAware {
                 if (rpcApi != null) {
                     final Object proxyInstance = JdkProxy.getInstance().getProxyInstance(aClass);
                     beanFactory.registerSingleton(beanName, proxyInstance);
-                    final String name = rpcApi.value();
-                    final String url = rpcApi.url();
-                    final boolean trace = "true".equals(rpcApi.trace());;
+                    final String name = resolverValue(rpcApi.value());
+                    final String url = resolverValue(rpcApi.url());
+                    final String trace = resolverValue(rpcApi.trace());
+                    final boolean trace0 = "true".equals(trace);
                     final Provider provider = new Provider();
-                    provider.setTrace(trace);
+                    provider.setTrace(trace0);
                     if (StringUtils.isNotBlank(url)) {
                         final String[] split = url.split(":");
                         provider.setHost(split[0]);
@@ -85,4 +88,32 @@ public class RpcClient implements BeanFactoryPostProcessor, EnvironmentAware {
     public void setEnvironment(@NonNull Environment environment) {
         this.environment = environment;
     }
+
+    private static final Pattern humpPattern = Pattern.compile("[A-Z]");
+
+    private String formatString(String str) {
+        Matcher matcher = humpPattern.matcher(str);
+        StringBuffer sb = new StringBuffer();
+        while (matcher.find()) {
+            matcher.appendReplacement(sb, "-" + matcher.group(0).toLowerCase());
+        }
+        matcher.appendTail(sb);
+        return sb.toString();
+    }
+
+    public String resolverValue(String value) {
+        if (value == null || !value.startsWith("$")) {
+            return value;
+        }
+        final String str = value.replaceAll("\\$", "");
+        final String sub = str.substring(1, value.length() - 2);
+
+        String result = this.environment.getProperty(sub, String.class);
+        if (result == null) {
+            result = this.environment.getProperty(formatString(sub), String.class);
+        }
+        return result;
+    }
+
+
 }
