@@ -12,5 +12,5 @@ public @interface RpcApi {
 
     String url() default "";
 
-    boolean trace() default false;
+    String trace() default "false";
 }
