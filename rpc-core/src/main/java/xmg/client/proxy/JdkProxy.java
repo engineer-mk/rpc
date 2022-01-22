@@ -2,11 +2,13 @@ package xmg.client.proxy;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.env.Environment;
+import xmg.client.RpcClient;
 import xmg.client.connect.ConnectionManager;
-import xmg.codec.exception.RpcRemoteApiException;
 import xmg.client.handler.ClientHandler;
 import xmg.client.support.RpcApi;
 import xmg.codec.Request;
+import xmg.codec.exception.RpcRemoteApiException;
 import xmg.server.RpcServer;
 import xmg.server.handler.ServerHandler;
 import xmg.utils.StringUtils;
@@ -17,7 +19,7 @@ import java.lang.reflect.Proxy;
 
 public class JdkProxy {
     private static final Logger log = LoggerFactory.getLogger(RpcServer.class);
-
+    private static Environment environment;
     private static final JdkProxy proxy = new JdkProxy();
 
     public static JdkProxy getInstance() {
@@ -25,6 +27,10 @@ public class JdkProxy {
     }
 
     private JdkProxy() {
+    }
+
+    public void setEnvironment(Environment environment) {
+        JdkProxy.environment = environment;
     }
 
     @SuppressWarnings("unchecked")
@@ -61,8 +67,8 @@ public class JdkProxy {
                 throw new RuntimeException("is not rpcApi");
             }
             final ConnectionManager connectionManager = ConnectionManager.getInstance();
-            final String name = rpcApi.value();
-            final String url = rpcApi.url();
+            final String name = RpcClient.resolverValue(rpcApi.value(), environment);
+            final String url = RpcClient.resolverValue(rpcApi.url(), environment);
             ClientHandler handler;
             if (StringUtils.isNotBlank(name)) {
                 handler = connectionManager.choiceHandler(name);

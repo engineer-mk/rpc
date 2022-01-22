@@ -54,11 +54,13 @@ public class RpcClient implements BeanFactoryPostProcessor, EnvironmentAware {
                 final String beanName = defined.getBeanName();
                 final RpcApi rpcApi = aClass.getAnnotation(RpcApi.class);
                 if (rpcApi != null) {
-                    final Object proxyInstance = JdkProxy.getInstance().getProxyInstance(aClass);
+                    final JdkProxy instance = JdkProxy.getInstance();
+                    instance.setEnvironment(this.environment);
+                    final Object proxyInstance = instance.getProxyInstance(aClass);
                     beanFactory.registerSingleton(beanName, proxyInstance);
-                    final String name = resolverValue(rpcApi.value());
-                    final String url = resolverValue(rpcApi.url());
-                    final String trace = resolverValue(rpcApi.trace());
+                    final String name = resolverValue(rpcApi.value(), this.environment);
+                    final String url = resolverValue(rpcApi.url(), this.environment);
+                    final String trace = resolverValue(rpcApi.trace(), this.environment);
                     final boolean trace0 = "true".equals(trace);
                     final Provider provider = new Provider();
                     provider.setTrace(trace0);
@@ -91,7 +93,7 @@ public class RpcClient implements BeanFactoryPostProcessor, EnvironmentAware {
 
     private static final Pattern humpPattern = Pattern.compile("[A-Z]");
 
-    private String formatString(String str) {
+    private static String formatString(String str) {
         Matcher matcher = humpPattern.matcher(str);
         StringBuffer sb = new StringBuffer();
         while (matcher.find()) {
@@ -101,16 +103,16 @@ public class RpcClient implements BeanFactoryPostProcessor, EnvironmentAware {
         return sb.toString();
     }
 
-    public String resolverValue(String value) {
-        if (value == null || !value.startsWith("$")) {
+    public static String resolverValue(String value, Environment environment) {
+        if (value == null || !value.startsWith("$") || environment == null) {
             return value;
         }
         final String str = value.replaceAll("\\$", "");
         final String sub = str.substring(1, value.length() - 2);
 
-        String result = this.environment.getProperty(sub, String.class);
+        String result = environment.getProperty(sub, String.class);
         if (result == null) {
-            result = this.environment.getProperty(formatString(sub), String.class);
+            result = environment.getProperty(formatString(sub), String.class);
         }
         return result;
     }
