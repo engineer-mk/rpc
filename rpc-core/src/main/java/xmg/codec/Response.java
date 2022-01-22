@@ -56,7 +56,7 @@ public class Response implements Serializable {
             Throwable throwable = this.throwable;
             sb.append("调用异常:");
             sb.append(throwable.toString());
-        } else {
+        } else if (result != null) {
             sb.append("调用结果:");
             sb.append(result.toString());
         }

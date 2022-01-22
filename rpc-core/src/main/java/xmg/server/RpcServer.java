@@ -22,14 +22,18 @@ import javax.annotation.PreDestroy;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 
 public class RpcServer implements ApplicationContextAware {
     private static final Logger log = LoggerFactory.getLogger(RpcServer.class);
     public static String TOKEN;
-    private static final Map<String, Response> responseMap = new ConcurrentHashMap<>();
+    private static final Map<String, Response> RESPONSE_MAP = new ConcurrentHashMap<>();
+    public static final Set<String> IGNORE_EXCEPTIONS = new HashSet<>();
+
     private final NioEventLoopGroup bossGroup = new NioEventLoopGroup(3);
     private final NioEventLoopGroup workGroup = new NioEventLoopGroup();
     private final Map<MethodInfo, ServerMethod> serviceMethodMap = new HashMap<>();
@@ -94,14 +98,14 @@ public class RpcServer implements ApplicationContextAware {
     }
 
     public static Response getResponse(String requestId) {
-        return responseMap.get(requestId);
+        return RESPONSE_MAP.get(requestId);
     }
 
     public static void putResponse(String requestId, Response response) {
-        responseMap.put(requestId, response);
+        RESPONSE_MAP.put(requestId, response);
     }
 
     public static void removeResponse(String requestId) {
-        responseMap.remove(requestId);
+        RESPONSE_MAP.remove(requestId);
     }
 }

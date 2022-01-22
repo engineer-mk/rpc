@@ -4,6 +4,7 @@ package xmg.client.handler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.lang.NonNull;
+import xmg.client.RpcClient;
 import xmg.codec.Request;
 import xmg.codec.Response;
 import xmg.codec.exception.RPcRemoteAccessException;
@@ -81,9 +82,13 @@ public class RpcFuture implements Future<Object> {
         }
         if (!Response.State.OK.equals(this.response.getStates())) {
             Throwable throwable = this.response.getThrowable();
-            log.error("远程异常--->方法:" + response.getTraceInfo(), throwable);
             if (throwable instanceof RPcRemoteAccessException) {
                 throwable = ((RPcRemoteAccessException) throwable).getTarget();
+            }
+            if (RpcClient.IGNORE_EXCEPTIONS.contains(throwable.getClass().getName())) {
+                log.warn(response.getTraceInfo());
+            } else {
+                log.error("远程异常--->方法:" + response.getTraceInfo(), throwable);
             }
             throw new RPcRemoteAccessException(throwable.getMessage(), throwable);
         }

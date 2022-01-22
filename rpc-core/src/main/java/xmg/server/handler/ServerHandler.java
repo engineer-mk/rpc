@@ -34,9 +34,9 @@ public class ServerHandler extends SimpleChannelInboundHandler<Request> {
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, Request request) {
-        if (RpcServer.TOKEN!=null){
+        if (RpcServer.TOKEN != null) {
             final String token = request.getToken();
-            if (!RpcServer.TOKEN.equals(token)){
+            if (!RpcServer.TOKEN.equals(token)) {
                 ctx.close();
                 log.error(ctx.pipeline().channel().remoteAddress() + " token error!");
             }
@@ -74,7 +74,11 @@ public class ServerHandler extends SimpleChannelInboundHandler<Request> {
                         targetException = ((RPcRemoteAccessException) targetException).getTarget();
                     } else {
                         final String mes = requestId + " 请求异常:" + targetException.toString();
-                        log.error(mes, targetException);
+                        if (RpcServer.IGNORE_EXCEPTIONS.contains(targetException.getClass().getName())) {
+                            log.warn(mes);
+                        } else {
+                            log.error(mes, targetException);
+                        }
                     }
                     response.setThrowable(targetException);
                     response.setStates(Response.State.INTERNAL_SERVER_ERROR);

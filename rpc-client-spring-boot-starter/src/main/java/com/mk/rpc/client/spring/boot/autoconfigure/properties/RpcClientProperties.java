@@ -11,6 +11,15 @@ public class RpcClientProperties {
     //多个值，用英文逗号分割
     private String remoteApiPackages;
     private String token;
+    private String ignoreExceptions;
+
+    public String getIgnoreExceptions() {
+        return ignoreExceptions;
+    }
+
+    public void setIgnoreExceptions(String ignoreExceptions) {
+        this.ignoreExceptions = ignoreExceptions;
+    }
 
     public String getToken() {
         return token;

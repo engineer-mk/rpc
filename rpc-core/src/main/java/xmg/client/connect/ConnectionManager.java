@@ -153,7 +153,7 @@ public class ConnectionManager implements InitializingBean, DisposableBean {
     }
 
     private void updateConnection() {
-        final Set<Provider> providers = RpcClient.needRegisteredRpcProviders;
+        final Set<Provider> providers = RpcClient.NEED_REGISTERED_RPC_PROVIDERS;
         final List<Provider> list = providers.stream()
                 .filter(it -> StringUtils.isBlank(it.getName()))
                 .collect(Collectors.toList());

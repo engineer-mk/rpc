@@ -8,6 +8,16 @@ public class RpcServerProperties {
 
     private String token;
 
+    private String ignoreExceptions;
+
+    public String getIgnoreExceptions() {
+        return ignoreExceptions;
+    }
+
+    public void setIgnoreExceptions(String ignoreExceptions) {
+        this.ignoreExceptions = ignoreExceptions;
+    }
+
     public String getToken() {
         return token;
     }

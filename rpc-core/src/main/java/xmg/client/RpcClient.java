@@ -19,6 +19,7 @@ import xmg.client.support.RpcApi;
 import xmg.client.support.RpcApiScanner;
 import xmg.utils.StringUtils;
 
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -28,7 +29,9 @@ import java.util.regex.Pattern;
 public class RpcClient implements BeanFactoryPostProcessor, EnvironmentAware {
     final Logger log = LoggerFactory.getLogger(RpcClient.class);
     public static String TOKEN;
-    public static final Set<Provider> needRegisteredRpcProviders = new HashSet<>();
+    public static final Set<String> IGNORE_EXCEPTIONS = new HashSet<>();
+    public static final Set<Provider> NEED_REGISTERED_RPC_PROVIDERS = new HashSet<>();
+
     private Environment environment;
 
     public RpcClient() {
@@ -37,6 +40,11 @@ public class RpcClient implements BeanFactoryPostProcessor, EnvironmentAware {
     public void postProcessBeanFactory(@NonNull ConfigurableListableBeanFactory beanFactory) throws BeansException {
         String packages = environment.getProperty("rpc.client.remote-api-packages", String.class);
         RpcClient.TOKEN = environment.getProperty("rpc.client.token", String.class);
+        final String ignoreExceptions = environment.getProperty("rpc.client.ignore-exceptions", String.class);
+        if (StringUtils.isNotBlank(ignoreExceptions)) {
+            final String[] split = ignoreExceptions.split(",");
+            RpcClient.IGNORE_EXCEPTIONS.addAll(Arrays.asList(split));
+        }
         if (packages == null) {
             log.warn("remote api packages is not specified , use the default value \"com.\"");
             packages = "com.";
@@ -71,10 +79,10 @@ public class RpcClient implements BeanFactoryPostProcessor, EnvironmentAware {
                         if (provider.getInetAddress() == null) {
                             throw new RuntimeException(beanClassName + " url error");
                         }
-                        needRegisteredRpcProviders.add(provider);
+                        NEED_REGISTERED_RPC_PROVIDERS.add(provider);
                     } else if (StringUtils.isNotBlank(name)) {
                         provider.setName(name);
-                        needRegisteredRpcProviders.add(provider);
+                        NEED_REGISTERED_RPC_PROVIDERS.add(provider);
                     } else {
                         throw new RuntimeException(beanClassName + " not hava a url or name");
                     }

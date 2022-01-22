@@ -64,7 +64,7 @@ public class ServerDiscovery implements InitializingBean, DisposableBean {
     }
 
     private void updateConnection() {
-        final Set<Provider> providers = RpcClient.needRegisteredRpcProviders;
+        final Set<Provider> providers = RpcClient.NEED_REGISTERED_RPC_PROVIDERS;
         final List<Provider> serverList = getServerList(providers);
         connectionManager.updateServerNodes(serverList);
     }
