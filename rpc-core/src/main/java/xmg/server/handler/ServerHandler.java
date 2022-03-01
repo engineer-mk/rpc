@@ -86,10 +86,11 @@ public class ServerHandler extends SimpleChannelInboundHandler<Request> {
                     log.error(requestId + " 请求异常:" + e.getLocalizedMessage(), e);
                     response.setThrowable(e);
                     response.setStates(Response.State.INTERNAL_SERVER_ERROR);
-                }
-                if (openTrace) {
-                    threadLocal.remove();
-                    RpcServer.removeResponse(requestId);
+                } finally {
+                    if (openTrace) {
+                        threadLocal.remove();
+                        RpcServer.removeResponse(requestId);
+                    }
                 }
                 ctx.writeAndFlush(response);
             });

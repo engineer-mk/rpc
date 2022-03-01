@@ -37,15 +37,17 @@ public class Response implements Serializable {
             sb.append("(");
             final Object[] parameters = request.getParameters();
             final Class<?>[] parameterTypes = request.getParameterTypes();
-            for (int i = 0; i < parameters.length; i++) {
-                final Object parameter = parameters[i];
-                final Class<?> parameterType = parameterTypes[i];
-                if (i > 0) {
-                    sb.append(",");
+            if (parameters != null) {
+                for (int i = 0; i < parameters.length; i++) {
+                    final Object parameter = parameters[i];
+                    final Class<?> parameterType = parameterTypes[i];
+                    if (i > 0) {
+                        sb.append(",");
+                    }
+                    sb.append(parameterType.getSimpleName());
+                    sb.append(" ");
+                    sb.append(parameter.toString());
                 }
-                sb.append(parameterType.getSimpleName());
-                sb.append(" ");
-                sb.append(parameter.toString());
             }
             sb.append(")");
         }
