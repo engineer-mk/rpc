@@ -5,12 +5,24 @@ import java.net.InetSocketAddress;
 import java.util.Objects;
 
 public class Provider {
+    private Integer id;
     private String name;
     private String host;
     private Integer port;
+
     private String description;
     private boolean trace;
 
+    public Provider() {
+    }
+
+    public Integer getId() {
+        return id;
+    }
+
+    public void setId(final Integer id) {
+        this.id = id;
+    }
 
     public InetSocketAddress getInetAddress() {
         if (host == null || port == null) {
@@ -24,16 +36,19 @@ public class Provider {
     }
 
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) return true;
-        if (!(o instanceof Provider)) return false;
-        Provider provider = (Provider) o;
-        return Objects.equals(name, provider.name) && Objects.equals(host, provider.host) && Objects.equals(port, provider.port);
+        if (o == null || getClass() != o.getClass()) return false;
+        final Provider provider = (Provider) o;
+        return Objects.equals(name, provider.name)
+                && Objects.equals(host, provider.host)
+                && Objects.equals(port, provider.port)
+                && Objects.equals(id, provider.id);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, host, port, description);
+        return Objects.hash(name, host, port, id);
     }
 
     public String getName() {

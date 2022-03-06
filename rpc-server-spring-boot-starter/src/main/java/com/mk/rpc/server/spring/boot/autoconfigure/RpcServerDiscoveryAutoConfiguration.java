@@ -15,6 +15,8 @@ import org.springframework.cloud.client.ConditionalOnDiscoveryEnabled;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.util.Map;
+
 @Configuration
 @ConditionalOnClass(NacosDiscoveryProperties.class)
 @ConditionalOnDiscoveryEnabled
@@ -28,7 +30,9 @@ public class RpcServerDiscoveryAutoConfiguration {
     @ConditionalOnMissingBean
     public NacosDiscoveryProperties nacosDiscoveryProperties(RpcServerProperties properties) {
         NacosDiscoveryProperties nacosDiscoveryProperties = new NacosDiscoveryProperties();
-        nacosDiscoveryProperties.getMetadata().put("rpcServerPort", properties.getPort().toString());
+        final Map<String, String> metadata = nacosDiscoveryProperties.getMetadata();
+        metadata.put("rpcServerPort", properties.getPort().toString());
+        metadata.put("rpcServerId", properties.getId().toString());
         return nacosDiscoveryProperties;
     }
 }

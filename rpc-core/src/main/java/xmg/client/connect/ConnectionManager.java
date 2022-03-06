@@ -49,7 +49,7 @@ public class ConnectionManager implements InitializingBean, DisposableBean {
     }
 
     @Nullable
-    public ClientHandler choiceHandler(String providerName) {
+    public ClientHandler choiceOneHandler(String providerName) {
         if (!isRunning || connectedServerNodes.isEmpty()) {
             return null;
         }
@@ -59,7 +59,7 @@ public class ConnectionManager implements InitializingBean, DisposableBean {
     }
 
     @Nullable
-    public ClientHandler choiceHandler(@NonNull String host, @NonNull Integer port) {
+    public ClientHandler choiceOneHandler(@NonNull String host, @NonNull Integer port) {
         if (!isRunning || connectedServerNodes.isEmpty()) {
             return null;
         }

@@ -33,12 +33,38 @@ public class JdkProxy {
         JdkProxy.environment = environment;
     }
 
+    public static Environment getEnvironment() {
+        return environment;
+    }
+
     @SuppressWarnings("unchecked")
     public <T> T getProxyInstance(Class<T> interfaceClass) {
         final Object o = Proxy.newProxyInstance(interfaceClass.getClassLoader(),
                 new Class<?>[]{interfaceClass},
                 new Handler(interfaceClass));
         return (T) o;
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T> T getProxyInstance(Class<T> interfaceClass,ClientHandler handler) {
+        final Object o = Proxy.newProxyInstance(interfaceClass.getClassLoader(),
+                new Class<?>[]{interfaceClass},
+                new Handler0(interfaceClass,handler));
+        return (T) o;
+    }
+
+    static class Handler0 extends Handler {
+        private final ClientHandler handler;
+
+        Handler0(final Class<?> target, final ClientHandler handler) {
+            super(target);
+            this.handler = handler;
+        }
+
+        @Override
+        public ClientHandler getHandler() {
+            return this.handler;
+        }
     }
 
     static class Handler implements InvocationHandler {
@@ -66,21 +92,7 @@ public class JdkProxy {
             if (rpcApi == null) {
                 throw new RuntimeException("is not rpcApi");
             }
-            final ConnectionManager connectionManager = ConnectionManager.getInstance();
-            final String name = RpcClient.resolverValue(rpcApi.value(), environment);
-            final String url = RpcClient.resolverValue(rpcApi.url(), environment);
-            ClientHandler handler;
-            if (StringUtils.isNotBlank(name)) {
-                handler = connectionManager.choiceHandler(name);
-            } else if (StringUtils.isNotBlank(url)) {
-                final String[] split = url.split(":");
-                handler = connectionManager.choiceHandler(split[0], Integer.parseInt(split[1]));
-            } else {
-                throw new RpcRemoteApiException("not definition server provider");
-            }
-            if (handler == null) {
-                throw new RpcRemoteApiException("can not find server provider");
-            }
+            final ClientHandler handler = getHandler();
             final Request request = new Request(method, args);
             final Request parentRequest = ServerHandler.threadLocal.get();
             if (parentRequest != null) {
@@ -88,6 +100,26 @@ public class JdkProxy {
                 request.setTrace(parentRequest.isTrace());
             }
             return handler.senRequest(request).get();
+        }
+
+        public ClientHandler getHandler() {
+            final RpcApi rpcApi = target.getAnnotation(RpcApi.class);
+            final ConnectionManager connectionManager = ConnectionManager.getInstance();
+            final String name = RpcClient.resolverValue(rpcApi.value(), environment);
+            final String url = RpcClient.resolverValue(rpcApi.url(), environment);
+            ClientHandler handler;
+            if (StringUtils.isNotBlank(name)) {
+                handler = connectionManager.choiceOneHandler(name);
+            } else if (StringUtils.isNotBlank(url)) {
+                final String[] split = url.split(":");
+                handler = connectionManager.choiceOneHandler(split[0], Integer.parseInt(split[1]));
+            } else {
+                throw new RpcRemoteApiException("not definition server provider");
+            }
+            if (handler == null) {
+                throw new RpcRemoteApiException("can not find server provider");
+            }
+            return handler;
         }
     }
 }
