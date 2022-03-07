@@ -13,17 +13,18 @@ import org.springframework.context.EnvironmentAware;
 import org.springframework.core.env.Environment;
 import org.springframework.core.type.filter.AnnotationTypeFilter;
 import org.springframework.lang.NonNull;
+import xmg.client.handler.ClientHandler;
 import xmg.client.providers.Provider;
 import xmg.client.proxy.JdkProxy;
+import xmg.client.support.Client;
 import xmg.client.support.RpcApi;
 import xmg.client.support.RpcApiScanner;
 import xmg.utils.StringUtils;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 
 public class RpcClient implements BeanFactoryPostProcessor, EnvironmentAware {
@@ -31,7 +32,7 @@ public class RpcClient implements BeanFactoryPostProcessor, EnvironmentAware {
     public static String TOKEN;
     public static final Set<String> IGNORE_EXCEPTIONS = new HashSet<>();
     public static final Set<Provider> NEED_REGISTERED_RPC_PROVIDERS = new HashSet<>();
-
+    public static final Map<Class<?>, List<Client>> clientsMap = new HashMap<>();
     private Environment environment;
 
     public RpcClient() {
@@ -63,7 +64,9 @@ public class RpcClient implements BeanFactoryPostProcessor, EnvironmentAware {
                 final RpcApi rpcApi = aClass.getAnnotation(RpcApi.class);
                 if (rpcApi != null) {
                     final JdkProxy instance = JdkProxy.getInstance();
-                    instance.setEnvironment(this.environment);
+                    if (JdkProxy.getEnvironment() == null) {
+                        instance.setEnvironment(this.environment);
+                    }
                     final Object proxyInstance = instance.getProxyInstance(aClass);
                     beanFactory.registerSingleton(beanName, proxyInstance);
                     final String name = resolverValue(rpcApi.value(), this.environment);
@@ -83,6 +86,7 @@ public class RpcClient implements BeanFactoryPostProcessor, EnvironmentAware {
                     } else if (StringUtils.isNotBlank(name)) {
                         provider.setName(name);
                         NEED_REGISTERED_RPC_PROVIDERS.add(provider);
+                        clientsMap.putIfAbsent(aClass, new ArrayList<>());
                     } else {
                         throw new RuntimeException(beanClassName + " not hava a url or name");
                     }
@@ -125,5 +129,40 @@ public class RpcClient implements BeanFactoryPostProcessor, EnvironmentAware {
         return result;
     }
 
+    public <T> List<T> getClients(Class<T> tClass) {
+
+    }
+
+    public void updateClients(Map<Provider, ClientHandler> connectedServerNodes) {
+        final Set<Provider> connectedProviders = connectedServerNodes.keySet();
+        final JdkProxy jdkProxy = JdkProxy.getInstance();
+        for (final Map.Entry<Class<?>, List<Client>> entry : clientsMap.entrySet()) {
+            final Class<?> aClass = entry.getKey();
+            final RpcApi rpcApi = aClass.getAnnotation(RpcApi.class);
+            final String name = resolverValue(rpcApi.value(), this.environment);
+            final List<Client> clients = entry.getValue();
+            //已经添加的节点
+            final List<Provider> registeredProviders = clients.stream().map(Client::getProvider)
+                    .collect(Collectors.toList());
+            //现存同名节点
+            final List<Provider> thisNameProviders = connectedProviders.stream()
+                    .filter(it -> name.equals(it.getName()))
+                    .collect(Collectors.toList());
+            //添加未注册的
+            thisNameProviders.forEach(it -> {
+                        final boolean isRegistered = registeredProviders.contains(it);
+                        if (!isRegistered) {
+                            final Client client = new Client();
+                            client.setProvider(it);
+                            client.setProxy(jdkProxy.getProxyInstance(aClass));
+                            clients.add(client);
+                        }
+                    });
+            //移除过期的
+            registeredProviders.forEach(it->{
+                final boolean isPast = !thisNameProviders.contains(it);
+            });
+        }
+    }
 
 }

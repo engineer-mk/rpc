@@ -4,11 +4,20 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties(prefix = "rpc.server")
 public class RpcServerProperties {
+    private Integer Id;
     private Integer port = 7000;
 
     private String token;
 
     private String ignoreExceptions;
+
+    public Integer getId() {
+        return Id;
+    }
+
+    public void setId(final Integer id) {
+        Id = id;
+    }
 
     public String getIgnoreExceptions() {
         return ignoreExceptions;

@@ -40,6 +40,8 @@ public class ServerDiscovery implements InitializingBean, DisposableBean {
                     provider.setName(name);
                     provider.setHost(instance.getHost());
                     final String port = metadata.get("rpcServerPort");
+                    final int rpcServerId = Integer.parseInt(metadata.get("rpcServerId"));
+                    provider.setId(rpcServerId);
                     provider.setPort(Integer.parseInt(port));
                     provider.setTrace(p.isTrace());
                     providers.add(provider);
