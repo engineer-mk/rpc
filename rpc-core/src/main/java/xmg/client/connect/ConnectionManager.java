@@ -20,6 +20,9 @@ import xmg.client.connect.loadbalance.impl.RoundRpcLoadBalance;
 import xmg.client.handler.ClientHandler;
 import xmg.client.handler.ClientInitializer;
 import xmg.client.providers.Provider;
+import xmg.client.proxy.JdkProxy;
+import xmg.client.support.Client;
+import xmg.client.support.RpcApi;
 import xmg.utils.StringUtils;
 
 import java.net.InetSocketAddress;
@@ -95,7 +98,7 @@ public class ConnectionManager implements InitializingBean, DisposableBean {
         if (remoteAddress == null) {
             return;
         }
-        connectedServerNodes.put(provider, new ClientHandler(null));
+        addProvider(provider, new ClientHandler(null));
         final ChannelFuture channelFuture = new Bootstrap()
                 .group(eventLoopGroup)
                 .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 5000)
@@ -105,16 +108,16 @@ public class ConnectionManager implements InitializingBean, DisposableBean {
         channelFuture.addListener((ChannelFutureListener) cf -> {
             if (cf.isSuccess()) {
                 final ClientHandler handler = cf.channel().pipeline().get(ClientHandler.class);
-                connectedServerNodes.put(provider, handler);
+                addProvider(provider, handler);
             } else {
-                connectedServerNodes.remove(provider);
-                log.error("Failed to connect remote server {}", remoteAddress.toString());
+                removeProvider(provider);
+                log.error("Failed to connect remote server {}", remoteAddress);
             }
         });
         channelFuture.channel().closeFuture()
                 .addListener((ChannelFutureListener) cf -> {
                     if (cf.isSuccess()) {
-                        connectedServerNodes.remove(provider);
+                        removeProvider(provider);
                         log.warn(provider + " is destroyed !");
                     }
                 });
@@ -129,7 +132,7 @@ public class ConnectionManager implements InitializingBean, DisposableBean {
                 .close()
                 .addListener((ChannelFutureListener) cf -> {
                     if (cf.isSuccess()) {
-                        connectedServerNodes.remove(provider);
+                        removeProvider(provider);
                     } else {
                         log.error("Failed to destroy remote server {}", provider.getInetAddress().toString());
                     }
@@ -165,5 +168,51 @@ public class ConnectionManager implements InitializingBean, DisposableBean {
         isRunning = false;
         service.shutdownNow();
         connectedServerNodes.keySet().forEach(this::doConnectServerNode);
+    }
+
+    private void addProvider(Provider provider, ClientHandler handler) {
+        this.connectedServerNodes.put(provider, handler);
+        updateClients(this.connectedServerNodes);
+    }
+
+    public void removeProvider(Provider provider) {
+        this.connectedServerNodes.remove(provider);
+        updateClients(this.connectedServerNodes);
+    }
+
+    private void updateClients(Map<Provider, ClientHandler> connectedServerNodes) {
+        final Set<Provider> connectedProviders = connectedServerNodes.keySet();
+        final JdkProxy jdkProxy = JdkProxy.getInstance();
+        for (final Map.Entry<Class<?>, List<Client>> entry : RpcClient.CLIENTS_MAP.entrySet()) {
+            final Class<?> aClass = entry.getKey();
+            final RpcApi rpcApi = aClass.getAnnotation(RpcApi.class);
+            final String name = RpcClient.resolverValue(rpcApi.value(), RpcClient.environment);
+            final List<Client> clients = entry.getValue();
+            //已经添加的节点
+            final List<Provider> registeredProviders = clients
+                    .stream().map(Client::getProvider)
+                    .collect(Collectors.toList());
+            //现存同名节点
+            final List<Provider> thisNameProviders = connectedProviders.stream()
+                    .filter(it -> name.equals(it.getName()))
+                    .collect(Collectors.toList());
+            //添加未注册的
+            thisNameProviders.forEach(it -> {
+                final boolean isRegistered = registeredProviders.contains(it);
+                if (!isRegistered) {
+                    final Client client = new Client();
+                    client.setProvider(it);
+                    client.setProxy(jdkProxy.getProxyInstance(aClass, connectedServerNodes.get(it)));
+                    clients.add(client);
+                }
+            });
+            //移除过期的
+            registeredProviders.forEach(it -> {
+                final boolean isPast = !thisNameProviders.contains(it);
+                if (isPast) {
+                    clients.removeIf(client -> client.getProvider().equals(it));
+                }
+            });
+        }
     }
 }

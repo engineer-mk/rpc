@@ -13,7 +13,6 @@ import org.springframework.context.EnvironmentAware;
 import org.springframework.core.env.Environment;
 import org.springframework.core.type.filter.AnnotationTypeFilter;
 import org.springframework.lang.NonNull;
-import xmg.client.handler.ClientHandler;
 import xmg.client.providers.Provider;
 import xmg.client.proxy.JdkProxy;
 import xmg.client.support.Client;
@@ -32,8 +31,8 @@ public class RpcClient implements BeanFactoryPostProcessor, EnvironmentAware {
     public static String TOKEN;
     public static final Set<String> IGNORE_EXCEPTIONS = new HashSet<>();
     public static final Set<Provider> NEED_REGISTERED_RPC_PROVIDERS = new HashSet<>();
-    public static final Map<Class<?>, List<Client>> clientsMap = new HashMap<>();
-    private Environment environment;
+    public static final Map<Class<?>, List<Client>> CLIENTS_MAP = new HashMap<>();
+    public static Environment environment;
 
     public RpcClient() {
     }
@@ -65,13 +64,13 @@ public class RpcClient implements BeanFactoryPostProcessor, EnvironmentAware {
                 if (rpcApi != null) {
                     final JdkProxy instance = JdkProxy.getInstance();
                     if (JdkProxy.getEnvironment() == null) {
-                        instance.setEnvironment(this.environment);
+                        instance.setEnvironment(environment);
                     }
                     final Object proxyInstance = instance.getProxyInstance(aClass);
                     beanFactory.registerSingleton(beanName, proxyInstance);
-                    final String name = resolverValue(rpcApi.value(), this.environment);
-                    final String url = resolverValue(rpcApi.url(), this.environment);
-                    final String trace = resolverValue(rpcApi.trace(), this.environment);
+                    final String name = resolverValue(rpcApi.value(), environment);
+                    final String url = resolverValue(rpcApi.url(), environment);
+                    final String trace = resolverValue(rpcApi.trace(), environment);
                     final boolean trace0 = "true".equals(trace);
                     final Provider provider = new Provider();
                     provider.setTrace(trace0);
@@ -86,7 +85,7 @@ public class RpcClient implements BeanFactoryPostProcessor, EnvironmentAware {
                     } else if (StringUtils.isNotBlank(name)) {
                         provider.setName(name);
                         NEED_REGISTERED_RPC_PROVIDERS.add(provider);
-                        clientsMap.putIfAbsent(aClass, new ArrayList<>());
+                        CLIENTS_MAP.putIfAbsent(aClass, new ArrayList<>());
                     } else {
                         throw new RuntimeException(beanClassName + " not hava a url or name");
                     }
@@ -100,7 +99,7 @@ public class RpcClient implements BeanFactoryPostProcessor, EnvironmentAware {
 
     @Override
     public void setEnvironment(@NonNull Environment environment) {
-        this.environment = environment;
+        RpcClient.environment = environment;
     }
 
     private static final Pattern humpPattern = Pattern.compile("[A-Z]");
@@ -129,40 +128,11 @@ public class RpcClient implements BeanFactoryPostProcessor, EnvironmentAware {
         return result;
     }
 
-    public <T> List<T> getClients(Class<T> tClass) {
-
-    }
-
-    public void updateClients(Map<Provider, ClientHandler> connectedServerNodes) {
-        final Set<Provider> connectedProviders = connectedServerNodes.keySet();
-        final JdkProxy jdkProxy = JdkProxy.getInstance();
-        for (final Map.Entry<Class<?>, List<Client>> entry : clientsMap.entrySet()) {
-            final Class<?> aClass = entry.getKey();
-            final RpcApi rpcApi = aClass.getAnnotation(RpcApi.class);
-            final String name = resolverValue(rpcApi.value(), this.environment);
-            final List<Client> clients = entry.getValue();
-            //已经添加的节点
-            final List<Provider> registeredProviders = clients.stream().map(Client::getProvider)
-                    .collect(Collectors.toList());
-            //现存同名节点
-            final List<Provider> thisNameProviders = connectedProviders.stream()
-                    .filter(it -> name.equals(it.getName()))
-                    .collect(Collectors.toList());
-            //添加未注册的
-            thisNameProviders.forEach(it -> {
-                        final boolean isRegistered = registeredProviders.contains(it);
-                        if (!isRegistered) {
-                            final Client client = new Client();
-                            client.setProvider(it);
-                            client.setProxy(jdkProxy.getProxyInstance(aClass));
-                            clients.add(client);
-                        }
-                    });
-            //移除过期的
-            registeredProviders.forEach(it->{
-                final boolean isPast = !thisNameProviders.contains(it);
-            });
-        }
+    @SuppressWarnings("unchecked")
+    public <T> Map<Provider, T> getClients(Class<T> tClass) {
+        final List<Client> clients = CLIENTS_MAP.get(tClass);
+        return clients.stream()
+                .collect(Collectors.toMap(Client::getProvider, it -> (T) it.getProxy()));
     }
 
 }
