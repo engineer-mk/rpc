@@ -27,10 +27,7 @@ import xmg.utils.StringUtils;
 
 import java.net.InetSocketAddress;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
 public class ConnectionManager implements InitializingBean, DisposableBean {
@@ -38,6 +35,7 @@ public class ConnectionManager implements InitializingBean, DisposableBean {
 
     private final EventLoopGroup eventLoopGroup = new NioEventLoopGroup();
     private final Map<Provider, ClientHandler> connectedServerNodes = new ConcurrentHashMap<>();
+    private final Set<Provider> connectedServerProvider = new CopyOnWriteArraySet<>();
     private static final ConnectionManager instance = new ConnectionManager();
     private static final ScheduledExecutorService service = Executors.newScheduledThreadPool(1);
     private volatile boolean isRunning;
@@ -91,14 +89,15 @@ public class ConnectionManager implements InitializingBean, DisposableBean {
     }
 
     private synchronized void doConnectServerNode(Provider provider) {
-        if (connectedServerNodes.containsKey(provider)) {
+        if (connectedServerProvider.contains(provider)) {
             return;
         }
         final InetSocketAddress remoteAddress = provider.getInetAddress();
         if (remoteAddress == null) {
             return;
         }
-        addProvider(provider, new ClientHandler(null));
+        log.info("开始注册节点:{}", provider.getInetAddress().toString());
+        connectedServerProvider.add(provider);
         final ChannelFuture channelFuture = new Bootstrap()
                 .group(eventLoopGroup)
                 .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 5000)
@@ -110,7 +109,7 @@ public class ConnectionManager implements InitializingBean, DisposableBean {
                 final ClientHandler handler = cf.channel().pipeline().get(ClientHandler.class);
                 addProvider(provider, handler);
             } else {
-                removeProvider(provider);
+                connectedServerProvider.remove(provider);
                 log.error("Failed to connect remote server {}", remoteAddress);
             }
         });
@@ -128,6 +127,7 @@ public class ConnectionManager implements InitializingBean, DisposableBean {
         if (handler == null) {
             return;
         }
+        log.info("开始注销节点:{}", provider.getInetAddress().toString());
         handler.getContext()
                 .close()
                 .addListener((ChannelFutureListener) cf -> {
@@ -167,7 +167,7 @@ public class ConnectionManager implements InitializingBean, DisposableBean {
     public void destroy() {
         isRunning = false;
         service.shutdownNow();
-        connectedServerNodes.keySet().forEach(this::doConnectServerNode);
+        connectedServerNodes.keySet().forEach(this::doDisconnectServerNode);
     }
 
     private void addProvider(Provider provider, ClientHandler handler) {
@@ -177,17 +177,18 @@ public class ConnectionManager implements InitializingBean, DisposableBean {
 
     public void removeProvider(Provider provider) {
         this.connectedServerNodes.remove(provider);
+        this.connectedServerProvider.remove(provider);
         updateClients(this.connectedServerNodes);
     }
 
     private void updateClients(Map<Provider, ClientHandler> connectedServerNodes) {
         final Set<Provider> connectedProviders = connectedServerNodes.keySet();
         final JdkProxy jdkProxy = JdkProxy.getInstance();
-        for (final Map.Entry<Class<?>, List<Client>> entry : RpcClient.CLIENTS_MAP.entrySet()) {
+        for (final Map.Entry<Class<?>, Set<Client>> entry : RpcClient.CLIENTS_MAP.entrySet()) {
             final Class<?> aClass = entry.getKey();
             final RpcApi rpcApi = aClass.getAnnotation(RpcApi.class);
             final String name = RpcClient.resolverValue(rpcApi.value(), RpcClient.environment);
-            final List<Client> clients = entry.getValue();
+            final Set<Client> clients = entry.getValue();
             //已经添加的节点
             final List<Provider> registeredProviders = clients
                     .stream().map(Client::getProvider)

@@ -21,6 +21,7 @@ import xmg.client.support.RpcApiScanner;
 import xmg.utils.StringUtils;
 
 import java.util.*;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -31,7 +32,7 @@ public class RpcClient implements BeanFactoryPostProcessor, EnvironmentAware {
     public static String TOKEN;
     public static final Set<String> IGNORE_EXCEPTIONS = new HashSet<>();
     public static final Set<Provider> NEED_REGISTERED_RPC_PROVIDERS = new HashSet<>();
-    public static final Map<Class<?>, List<Client>> CLIENTS_MAP = new HashMap<>();
+    public static final Map<Class<?>, Set<Client>> CLIENTS_MAP = new HashMap<>();
     public static Environment environment;
 
     public RpcClient() {
@@ -85,7 +86,7 @@ public class RpcClient implements BeanFactoryPostProcessor, EnvironmentAware {
                     } else if (StringUtils.isNotBlank(name)) {
                         provider.setName(name);
                         NEED_REGISTERED_RPC_PROVIDERS.add(provider);
-                        CLIENTS_MAP.putIfAbsent(aClass, new ArrayList<>());
+                        CLIENTS_MAP.putIfAbsent(aClass, new CopyOnWriteArraySet<>());
                     } else {
                         throw new RuntimeException(beanClassName + " not hava a url or name");
                     }
@@ -130,7 +131,7 @@ public class RpcClient implements BeanFactoryPostProcessor, EnvironmentAware {
 
     @SuppressWarnings("unchecked")
     public <T> Map<Provider, T> getClients(Class<T> tClass) {
-        final List<Client> clients = CLIENTS_MAP.get(tClass);
+        final Set<Client> clients = CLIENTS_MAP.get(tClass);
         return clients.stream()
                 .collect(Collectors.toMap(Client::getProvider, it -> (T) it.getProxy()));
     }

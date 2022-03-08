@@ -51,7 +51,7 @@ public class ClientHandler extends SimpleChannelInboundHandler<Response> {
         RpcFuture rpcFuture = futureMap.get(requestId);
         if (rpcFuture != null) {
             futureMap.remove(requestId);
-            rpcFuture.done(response,provider.isTrace());
+            rpcFuture.done(response, provider.isTrace());
         } else {
             log.warn("request id error: " + requestId);
         }
