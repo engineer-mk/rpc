@@ -9,6 +9,7 @@ import io.netty.util.concurrent.DefaultEventExecutorGroup;
 import io.netty.util.concurrent.EventExecutorGroup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.StopWatch;
 import xmg.codec.Request;
 import xmg.codec.Response;
 import xmg.codec.exception.RPcRemoteAccessException;
@@ -34,6 +35,8 @@ public class ServerHandler extends SimpleChannelInboundHandler<Request> {
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, Request request) {
+        final StopWatch stopWatch = new StopWatch("channelRead0");
+        stopWatch.start("preprocessing");
         if (RpcServer.TOKEN != null) {
             final String token = request.getToken();
             if (!RpcServer.TOKEN.equals(token)) {
@@ -65,6 +68,8 @@ public class ServerHandler extends SimpleChannelInboundHandler<Request> {
                     final Object bean = rpcServer.getBean(serverMethod.getBeanName());
                     final Method method = serverMethod.getMethod();
                     final Object[] args = request.getParameters();
+                    stopWatch.stop();
+                    stopWatch.start("invoke method");
                     final Object result = method.invoke(bean, args);
                     response.setResult(result);
                     response.setStates(Response.State.OK);
@@ -92,7 +97,12 @@ public class ServerHandler extends SimpleChannelInboundHandler<Request> {
                         RpcServer.removeResponse(requestId);
                     }
                 }
+                stopWatch.stop();
+                stopWatch.start("writeAndFlush");
                 ctx.writeAndFlush(response);
+                stopWatch.stop();
+                System.out.println(stopWatch.prettyPrint());
+                System.out.println("total ms " + stopWatch.getTotalTimeMillis());
             });
         }
     }

@@ -4,15 +4,18 @@ import org.springframework.lang.NonNull;
 import xmg.client.connect.loadbalance.RpcLoadBalance;
 import xmg.client.providers.Provider;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 public class RoundRpcLoadBalance implements RpcLoadBalance {
-    private final AtomicInteger nextServerCyclicCounter;
+    private final Map<String, AtomicInteger> counterMap;
+
 
     public RoundRpcLoadBalance() {
-        this.nextServerCyclicCounter = new AtomicInteger(0);
+        counterMap = new HashMap<>();
     }
 
     @Override
@@ -24,17 +27,18 @@ public class RoundRpcLoadBalance implements RpcLoadBalance {
             return null;
         }
         final int count = providers.size();
-        final int nextServerIndex = incrementAndGetModulo(count);
+        final int nextServerIndex = incrementAndGetModulo(count, name);
         return providers.get(nextServerIndex);
     }
 
-    private int incrementAndGetModulo(int modulo) {
+    private int incrementAndGetModulo(int modulo, String name) {
         int current;
         int next;
+        final AtomicInteger serverCyclicCounter = this.counterMap.computeIfAbsent(name, k -> new AtomicInteger(0));
         do {
-            current = this.nextServerCyclicCounter.get();
+            current = serverCyclicCounter.get();
             next = (current + 1) % modulo;
-        } while (!this.nextServerCyclicCounter.compareAndSet(current, next));
+        } while (!serverCyclicCounter.compareAndSet(current, next));
 
         return next;
     }
