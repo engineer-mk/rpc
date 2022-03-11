@@ -93,7 +93,7 @@ public class JdkProxy {
             if (rpcApi == null) {
                 throw new RuntimeException("is not rpcApi");
             }
-            final String masterId = rpcApi.masterId();
+            final String masterId = RpcClient.resolverValue(rpcApi.masterId(), environment);
             final RpcMode rpcMode = method.getAnnotation(RpcMode.class);
             ClientHandler handler;
             if (rpcMode != null && "post".equalsIgnoreCase(rpcMode.value()) && StringUtils.isNotBlank(masterId)) {
