@@ -7,6 +7,7 @@ import xmg.client.RpcClient;
 import xmg.client.connect.ConnectionManager;
 import xmg.client.handler.ClientHandler;
 import xmg.client.support.RpcApi;
+import xmg.client.support.RpcMode;
 import xmg.codec.Request;
 import xmg.codec.exception.RpcRemoteApiException;
 import xmg.server.RpcServer;
@@ -46,10 +47,10 @@ public class JdkProxy {
     }
 
     @SuppressWarnings("unchecked")
-    public <T> T getProxyInstance(Class<T> interfaceClass,ClientHandler handler) {
+    public <T> T getProxyInstance(Class<T> interfaceClass, ClientHandler handler) {
         final Object o = Proxy.newProxyInstance(interfaceClass.getClassLoader(),
                 new Class<?>[]{interfaceClass},
-                new Handler0(interfaceClass,handler));
+                new Handler0(interfaceClass, handler));
         return (T) o;
     }
 
@@ -62,7 +63,7 @@ public class JdkProxy {
         }
 
         @Override
-        public ClientHandler getHandler() {
+        public ClientHandler getHandler(Integer nodeId) {
             return this.handler;
         }
     }
@@ -92,7 +93,14 @@ public class JdkProxy {
             if (rpcApi == null) {
                 throw new RuntimeException("is not rpcApi");
             }
-            final ClientHandler handler = getHandler();
+            final String masterId = rpcApi.masterId();
+            final RpcMode rpcMode = method.getAnnotation(RpcMode.class);
+            ClientHandler handler;
+            if (rpcMode != null && "post".equalsIgnoreCase(rpcMode.value()) && StringUtils.isNotBlank(masterId)) {
+                handler = getHandler(Integer.parseInt(masterId));
+            } else {
+                handler = getHandler(null);
+            }
             final Request request = new Request(method, args);
             final Request parentRequest = ServerHandler.threadLocal.get();
             if (parentRequest != null) {
@@ -102,17 +110,21 @@ public class JdkProxy {
             return handler.senRequest(request).get();
         }
 
-        public ClientHandler getHandler() {
+        public ClientHandler getHandler(Integer nodeId) {
             final RpcApi rpcApi = target.getAnnotation(RpcApi.class);
             final ConnectionManager connectionManager = ConnectionManager.getInstance();
             final String name = RpcClient.resolverValue(rpcApi.value(), environment);
             final String url = RpcClient.resolverValue(rpcApi.url(), environment);
             ClientHandler handler;
-            if (StringUtils.isNotBlank(name)) {
-                handler = connectionManager.choiceOneHandler(name);
-            } else if (StringUtils.isNotBlank(url)) {
+            if (StringUtils.isNotBlank(url)) {
                 final String[] split = url.split(":");
                 handler = connectionManager.choiceOneHandler(split[0], Integer.parseInt(split[1]));
+            } else if (StringUtils.isNotBlank(name)) {
+                if (nodeId != null) {
+                    handler = connectionManager.choiceOneHandler(nodeId);
+                } else {
+                    handler = connectionManager.choiceOneHandler(name);
+                }
             } else {
                 throw new RpcRemoteApiException("not definition server provider");
             }

@@ -7,7 +7,6 @@ import com.alibaba.cloud.nacos.discovery.NacosDiscoveryAutoConfiguration;
 import com.mk.rpc.server.spring.boot.autoconfigure.properties.RpcServerProperties;
 import org.springframework.boot.autoconfigure.AutoConfigureAfter;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -32,7 +31,7 @@ public class RpcServerDiscoveryAutoConfiguration {
         NacosDiscoveryProperties nacosDiscoveryProperties = new NacosDiscoveryProperties();
         final Map<String, String> metadata = nacosDiscoveryProperties.getMetadata();
         metadata.put("rpcServerPort", properties.getPort().toString());
-        metadata.put("rpcServerId", properties.getId().toString());
+        metadata.put("rpcServerId", properties.getNodeId().toString());
         return nacosDiscoveryProperties;
     }
 }

@@ -50,6 +50,18 @@ public class ConnectionManager implements InitializingBean, DisposableBean {
     }
 
     @Nullable
+    public ClientHandler choiceOneHandler(Integer nodeId) {
+        if (!isRunning || connectedServerNodes.isEmpty()) {
+            return null;
+        }
+        final Optional<Provider> optional = connectedServerNodes.keySet()
+                .stream()
+                .filter(it -> nodeId.equals(it.getId()))
+                .findAny();
+        return optional.map(connectedServerNodes::get).orElse(null);
+    }
+
+    @Nullable
     public ClientHandler choiceOneHandler(String providerName) {
         if (!isRunning || connectedServerNodes.isEmpty()) {
             return null;

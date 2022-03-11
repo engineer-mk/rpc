@@ -4,19 +4,21 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties(prefix = "rpc.server")
 public class RpcServerProperties {
-    private Integer Id;
+    //上线后勿改
+    private Integer nodeId;
+
     private Integer port = 7000;
 
     private String token;
 
     private String ignoreExceptions;
 
-    public Integer getId() {
-        return Id;
+    public Integer getNodeId() {
+        return nodeId;
     }
 
-    public void setId(final Integer id) {
-        Id = id;
+    public void setNodeId(final Integer nodeId) {
+        this.nodeId = nodeId;
     }
 
     public String getIgnoreExceptions() {
