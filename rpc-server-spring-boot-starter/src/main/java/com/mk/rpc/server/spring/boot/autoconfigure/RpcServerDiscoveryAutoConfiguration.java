@@ -30,8 +30,12 @@ public class RpcServerDiscoveryAutoConfiguration {
     public NacosDiscoveryProperties nacosDiscoveryProperties(RpcServerProperties properties) {
         NacosDiscoveryProperties nacosDiscoveryProperties = new NacosDiscoveryProperties();
         final Map<String, String> metadata = nacosDiscoveryProperties.getMetadata();
-        metadata.put("rpcServerPort", properties.getPort().toString());
-        metadata.put("rpcServerId", properties.getNodeId().toString());
+        if (properties.getPort() != null) {
+            metadata.put("rpcServerPort", properties.getPort().toString());
+        }
+        if (properties.getNodeId() != null) {
+            metadata.put("rpcServerId", properties.getNodeId().toString());
+        }
         return nacosDiscoveryProperties;
     }
 }
