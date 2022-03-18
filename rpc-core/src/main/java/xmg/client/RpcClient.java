@@ -47,8 +47,8 @@ public class RpcClient implements BeanFactoryPostProcessor, EnvironmentAware {
             RpcClient.IGNORE_EXCEPTIONS.addAll(Arrays.asList(split));
         }
         if (packages == null) {
-            log.warn("remote api packages is not specified , use the default value \"com.\"");
-            packages = "com.";
+            log.warn("remote api packages is not specified , use the default value \"com\"");
+            packages = "com";
         }
         log.info("begin scan remote api packages :" + packages);
         try {
@@ -68,6 +68,7 @@ public class RpcClient implements BeanFactoryPostProcessor, EnvironmentAware {
                         instance.setEnvironment(environment);
                     }
                     final Object proxyInstance = instance.getProxyInstance(aClass);
+                    //register bean
                     beanFactory.registerSingleton(beanName, proxyInstance);
                     final String name = resolverValue(rpcApi.value(), environment);
                     final String url = resolverValue(rpcApi.url(), environment);
