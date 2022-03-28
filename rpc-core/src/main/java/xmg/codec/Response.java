@@ -158,11 +158,4 @@ public class Response implements Serializable {
         this.throwable = throwable;
     }
 
-    public State getStates() {
-        return state;
-    }
-
-    public void setStates(State state) {
-        this.state = state;
-    }
 }

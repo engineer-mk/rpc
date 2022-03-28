@@ -11,7 +11,7 @@ import xmg.client.connect.ConnectionManager;
 public class RpcClientAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
-    public RpcClient rpcClient() {
+    public static RpcClient rpcClient() {
         return new RpcClient();
     }
 

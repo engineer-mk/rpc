@@ -80,7 +80,7 @@ public class RpcFuture implements Future<Object> {
             await();
             result = this.response.getResult();
         }
-        if (!Response.State.OK.equals(this.response.getStates())) {
+        if (!Response.State.OK.equals(this.response.getState())) {
             Throwable throwable = this.response.getThrowable();
             if (throwable instanceof RPcRemoteAccessException) {
                 throwable = ((RPcRemoteAccessException) throwable).getTarget();
@@ -102,7 +102,7 @@ public class RpcFuture implements Future<Object> {
             await(timeout, unit);
             result = this.response.getResult();
         }
-        if (isDone() && !Response.State.OK.equals(this.response.getStates())) {
+        if (isDone() && !Response.State.OK.equals(this.response.getState())) {
             Throwable throwable = this.response.getThrowable();
             String msg = request.getMethodName() + Arrays.toString(request.getParameters())
                     + throwable.getMessage();

@@ -56,7 +56,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Request> {
         if (serverMethod == null) {
             final RPcRemoteAccessException e = new RPcRemoteAccessException("can't find this method " + key.getMethodName(), new UnsupportedOperationException());
             response.setThrowable(e);
-            response.setStates(Response.State.NOT_FOUND);
+            response.setState(Response.State.NOT_FOUND);
             ctx.writeAndFlush(response);
         } else {
             executor.execute(() -> {
@@ -72,7 +72,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Request> {
                     stopWatch.start("invoke method");
                     final Object result = method.invoke(bean, args);
                     response.setResult(result);
-                    response.setStates(Response.State.OK);
+                    response.setState(Response.State.OK);
                 } catch (InvocationTargetException e) {
                     Throwable targetException = e.getTargetException();
                     if (targetException instanceof RPcRemoteAccessException) {
@@ -86,11 +86,11 @@ public class ServerHandler extends SimpleChannelInboundHandler<Request> {
                         }
                     }
                     response.setThrowable(targetException);
-                    response.setStates(Response.State.INTERNAL_SERVER_ERROR);
+                    response.setState(Response.State.INTERNAL_SERVER_ERROR);
                 } catch (IllegalAccessException e) {
                     log.error(requestId + " 请求异常:" + e.getLocalizedMessage(), e);
                     response.setThrowable(e);
-                    response.setStates(Response.State.INTERNAL_SERVER_ERROR);
+                    response.setState(Response.State.INTERNAL_SERVER_ERROR);
                 } finally {
                     if (openTrace) {
                         threadLocal.remove();
