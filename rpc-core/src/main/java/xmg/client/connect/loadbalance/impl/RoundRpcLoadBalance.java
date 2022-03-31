@@ -15,7 +15,7 @@ public class RoundRpcLoadBalance implements RpcLoadBalance {
 
 
     public RoundRpcLoadBalance() {
-        counterMap = new HashMap<>( );
+        counterMap = new HashMap<>();
     }
 
     @Override
