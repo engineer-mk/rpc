@@ -7,6 +7,7 @@ import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.util.NettyRuntime;
 import io.netty.util.concurrent.DefaultEventExecutorGroup;
 import io.netty.util.concurrent.EventExecutorGroup;
+import io.seata.core.context.RootContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.StopWatch;
@@ -16,6 +17,7 @@ import xmg.codec.exception.RPcRemoteAccessException;
 import xmg.server.RpcServer;
 import xmg.server.support.MethodInfo;
 import xmg.server.support.ServerMethod;
+import xmg.utils.StringUtils;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -68,6 +70,10 @@ public class ServerHandler extends SimpleChannelInboundHandler<Request> {
                     final Object bean = rpcServer.getBean(serverMethod.getBeanName());
                     final Method method = serverMethod.getMethod();
                     final Object[] args = request.getParameters();
+                    final String xid = request.getXid();
+                    if (StringUtils.isNotBlank(xid)) {
+                        RootContext.bind(xid);
+                    }
                     stopWatch.stop();
                     stopWatch.start("invoke method");
                     final Object result = method.invoke(bean, args);

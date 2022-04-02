@@ -15,6 +15,7 @@ public class Request implements Serializable {
     private Class<?>[] parameterTypes;
     private Object[] parameters;
     private long createTime;
+    private String xid;
 
     private String parentRequestId;
     private String address;
@@ -102,5 +103,13 @@ public class Request implements Serializable {
 
     public Object[] getParameters() {
         return parameters;
+    }
+
+    public String getXid() {
+        return xid;
+    }
+
+    public void setXid(String xid) {
+        this.xid = xid;
     }
 }
