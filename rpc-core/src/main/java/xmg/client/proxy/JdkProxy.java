@@ -1,5 +1,6 @@
 package xmg.client.proxy;
 
+import io.seata.core.context.RootContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.env.Environment;
@@ -103,6 +104,8 @@ public class JdkProxy {
             }
             final Request request = new Request(method, args);
             final Request parentRequest = ServerHandler.threadLocal.get();
+            final String xid = RootContext.getXID();
+            request.setXid(xid);
             if (parentRequest != null) {
                 request.setParentRequestId(parentRequest.getRequestId());
                 request.setTrace(parentRequest.isTrace());
