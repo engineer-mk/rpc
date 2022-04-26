@@ -48,7 +48,7 @@
             <groupId>io.seata</groupId>
             <artifactId>seata-all</artifactId>
             <version>1.4.2</version>
-            <optional>true</optional>
+            <optional>false</optional>
         </dependency>
     </dependencies>
 
