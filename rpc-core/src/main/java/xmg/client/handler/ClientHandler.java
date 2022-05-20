@@ -36,9 +36,12 @@ public class ClientHandler extends SimpleChannelInboundHandler<Response> {
         request.setAddress(context.channel().localAddress().toString());
         final RpcFuture future = new RpcFuture(request);
         try {
-            context.writeAndFlush(request).sync();
             final String requestId = request.getRequestId();
             futureMap.put(requestId, future);
+            if (log.isDebugEnabled()) {
+                log.debug("put requestId: " + requestId);
+            }
+            context.writeAndFlush(request).sync();
         } catch (InterruptedException e) {
             log.error(e.getLocalizedMessage(), e);
         }
@@ -51,22 +54,25 @@ public class ClientHandler extends SimpleChannelInboundHandler<Response> {
         RpcFuture rpcFuture = futureMap.get(requestId);
         if (rpcFuture != null) {
             futureMap.remove(requestId);
+            if (log.isDebugEnabled()) {
+                log.debug("done requestId: " + requestId);
+            }
             rpcFuture.done(response, provider.isTrace());
         } else {
-            log.warn("request id error: " + requestId);
+            log.warn("request id error: " + requestId + ",futureMap size: " + futureMap.size());
         }
     }
 
     @Override
     public void handlerAdded(ChannelHandlerContext ctx) throws Exception {
-        log.info(provider.getInetAddress().toString() + " initialization succeeded!");
+        log.info(provider.getInetAddress().toString() + "(" + provider.getName() + ")" + " initialization succeeded!");
         this.context = ctx;
         super.handlerAdded(ctx);
     }
 
     @Override
     public void handlerRemoved(ChannelHandlerContext ctx) throws Exception {
-        log.info(provider.getInetAddress().toString() + " destroyed!");
+        log.info(provider.getInetAddress().toString() + "(" + provider.getName() + ")" + " destroyed!");
         super.handlerRemoved(ctx);
     }
 
@@ -89,6 +95,9 @@ public class ClientHandler extends SimpleChannelInboundHandler<Response> {
     private void clear() {
         futureMap.forEach((s, rf) -> {
             if (rf.isCancelled() || System.currentTimeMillis() - rf.getRequest().getCreateTime() > RpcFuture.maxWaitTime) {
+                if (log.isDebugEnabled()) {
+                    log.debug("remove requestId: " + s);
+                }
                 futureMap.remove(s);
             }
         });

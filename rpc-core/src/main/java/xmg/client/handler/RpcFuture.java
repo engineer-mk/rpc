@@ -70,15 +70,13 @@ public class RpcFuture implements Future<Object> {
 
     @Override
     public boolean isDone() {
-        return response != null;
+        return this.response != null;
     }
 
     @Override
     public Object get() throws InterruptedException {
-        Object result = null;
         if (!isDone()) {
             await();
-            result = this.response.getResult();
         }
         if (!Response.State.OK.equals(this.response.getState())) {
             Throwable throwable = this.response.getThrowable();
@@ -92,7 +90,7 @@ public class RpcFuture implements Future<Object> {
             }
             throw new RPcRemoteAccessException(throwable.getMessage(), throwable);
         }
-        return result;
+        return this.response.getResult();
     }
 
     @Override

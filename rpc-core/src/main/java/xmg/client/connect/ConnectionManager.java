@@ -108,7 +108,7 @@ public class ConnectionManager implements InitializingBean, DisposableBean {
         if (remoteAddress == null) {
             return;
         }
-        log.info("开始注册节点:{}", provider.getInetAddress().toString());
+        log.info("开始注册节点:{}", provider.getInetAddress().toString() + "(" + provider.getName() + ")");
         connectedServerProvider.add(provider);
         final ChannelFuture channelFuture = new Bootstrap()
                 .group(eventLoopGroup)
@@ -139,7 +139,7 @@ public class ConnectionManager implements InitializingBean, DisposableBean {
         if (handler == null) {
             return;
         }
-        log.info("开始注销节点:{}", provider.getInetAddress().toString());
+        log.info("开始注销节点:{}", provider.getInetAddress().toString() + "(" + provider.getName() + ")");
         handler.getContext()
                 .close()
                 .addListener((ChannelFutureListener) cf -> {
