@@ -17,7 +17,6 @@ import xmg.codec.exception.RPcRemoteAccessException;
 import xmg.server.RpcServer;
 import xmg.server.support.MethodInfo;
 import xmg.server.support.ServerMethod;
-import xmg.utils.StringUtils;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -71,8 +70,10 @@ public class ServerHandler extends SimpleChannelInboundHandler<Request> {
                     final Method method = serverMethod.getMethod();
                     final Object[] args = request.getParameters();
                     final String xid = request.getXid();
-                    if (StringUtils.isNotBlank(xid)) {
+                    try {
+                        Class.forName("io.seata.core.context.RootContext");
                         RootContext.bind(xid);
+                    } catch (ClassNotFoundException ignore) {
                     }
                     stopWatch.stop();
                     stopWatch.start("invoke method");

@@ -104,8 +104,12 @@ public class JdkProxy {
             }
             final Request request = new Request(method, args);
             final Request parentRequest = ServerHandler.threadLocal.get();
-            final String xid = RootContext.getXID();
-            request.setXid(xid);
+            try {
+                Class.forName("io.seata.core.context.RootContext");
+                final String xid = RootContext.getXID();
+                request.setXid(xid);
+            } catch (ClassNotFoundException ignore) {
+            }
             if (parentRequest != null) {
                 request.setParentRequestId(parentRequest.getRequestId());
                 request.setTrace(parentRequest.isTrace());
