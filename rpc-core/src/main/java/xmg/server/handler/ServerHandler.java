@@ -134,4 +134,9 @@ public class ServerHandler extends SimpleChannelInboundHandler<Request> {
             log.debug(remoteAddress + " 断开连接，当前连接数量: " + onLineClients.size());
         }
     }
+
+    @Override
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
+        log.error("异常:", cause);
+    }
 }
