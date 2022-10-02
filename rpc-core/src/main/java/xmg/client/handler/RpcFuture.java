@@ -23,7 +23,7 @@ public class RpcFuture implements Future<Object> {
     private static final Logger log = LoggerFactory.getLogger(RpcFuture.class);
     public static final long maxWaitTime = 60 * 1000 * 3;
     private final Request request;
-    private Response response;
+    private volatile Response response;
     private boolean isCancel;
 
 
