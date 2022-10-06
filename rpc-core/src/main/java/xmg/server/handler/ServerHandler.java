@@ -27,7 +27,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<Request> {
     private static final Logger log = LoggerFactory.getLogger(ServerHandler.class);
     private static final Set<Channel> onLineClients = new CopyOnWriteArraySet<>();
     private final static EventExecutorGroup executor = new DefaultEventExecutorGroup(NettyRuntime.availableProcessors() * 2);
-    public static final ThreadLocal<Request> threadLocal = new ThreadLocal<>();
+    public static final ThreadLocal<Request> threadLocal = new InheritableThreadLocal<>();
     private final RpcServer rpcServer;
 
     public ServerHandler(RpcServer rpcServer) {
