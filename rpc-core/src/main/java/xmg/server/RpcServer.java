@@ -9,6 +9,8 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.DisposableBean;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import xmg.codec.Response;
@@ -17,8 +19,6 @@ import xmg.server.support.MethodInfo;
 import xmg.server.support.ServerMethod;
 import xmg.server.support.annotation.RpcProvider;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.HashMap;
@@ -28,7 +28,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 
-public class RpcServer implements ApplicationContextAware {
+public class RpcServer implements ApplicationContextAware, InitializingBean, DisposableBean {
     private static final Logger log = LoggerFactory.getLogger(RpcServer.class);
     public static String TOKEN;
     private static final Map<String, Response> RESPONSE_MAP = new ConcurrentHashMap<>();
@@ -44,7 +44,6 @@ public class RpcServer implements ApplicationContextAware {
         this.port = port;
     }
 
-    @PostConstruct
     public void initServer() {
         new ServerBootstrap()
                 .group(bossGroup, workGroup)
@@ -62,7 +61,6 @@ public class RpcServer implements ApplicationContextAware {
                 });
     }
 
-    @PreDestroy
     public void stop() {
         bossGroup.shutdownGracefully();
         workGroup.shutdownGracefully();
@@ -114,5 +112,15 @@ public class RpcServer implements ApplicationContextAware {
 
     public static void removeResponse(String requestId) {
         RESPONSE_MAP.remove(requestId);
+    }
+
+    @Override
+    public void afterPropertiesSet() {
+        initServer();
+    }
+
+    @Override
+    public void destroy() {
+        stop();
     }
 }
